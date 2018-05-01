@@ -24,6 +24,7 @@
 #include <util.h>
 
 #define REGBYTES (CONFIG_WORD_SIZE / 8)
+#define CREGSIZE (REGBYTES * 4)
 
 .section .text
 
@@ -36,6 +37,25 @@
 trap_entry:
 
   csrrw t0, sscratch, t0
+
+#ifdef CONFIG_ARCH_CHERI
+  SC   c0, (288 + 0*CREGSIZE)(t0)
+  SC   c1, (288 + 1*CREGSIZE)(t0)
+  SC   c2, (288 + 2*CREGSIZE)(t0)
+  SC   c3, (288 + 3*CREGSIZE)(t0)
+  SC   c4, (288 + 4*CREGSIZE)(t0)
+  SC   c5, (288 + 5*CREGSIZE)(t0)
+  SC   c6, (288 + 6*CREGSIZE)(t0)
+  SC   c7, (288 + 7*CREGSIZE)(t0)
+  SC   c8, (288 + 8*CREGSIZE)(t0)
+  SC   c9, (288 + 9*CREGSIZE)(t0)
+  SC   c10, (288 + 10*CREGSIZE)(t0)
+  SC   c11, (288 + 11*CREGSIZE)(t0)
+  SC   c12, (288 + 12*CREGSIZE)(t0)
+  SC   c13, (288 + 13*CREGSIZE)(t0)
+  SC   c14, (288 + 14*CREGSIZE)(t0)
+  SC   c15, (288 + 15*CREGSIZE)(t0)
+#endif
 
   STORE ra, (0*REGBYTES)(t0)
   STORE sp, (1*REGBYTES)(t0)
