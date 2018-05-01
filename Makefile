@@ -496,6 +496,10 @@ CFLAGS += -mfloat-abi=soft
 endif
 ifeq (${ARCH}, riscv)
 CFLAGS += -mcmodel=medany
+ifeq (${ARCH_CHERI}, y)
+CFLAGS += -Wa,-march=rv64g_xcheri
+ASFLAGS += -march=rv64g_xcheri
+endif
 endif
 
 # Allow overriding of the CFLAGS. Use with caution.
