@@ -79,6 +79,49 @@ enum _register {
     n_contextRegisters
 };
 
+#ifdef CONFIG_ARCH_CHERI
+enum _cheri_register {
+    c0,
+    c1,
+    c2,
+    c3,
+    c4,
+    c5,
+    c6,
+    c7,
+    c8,
+    c9,
+    c10,
+    c11,
+    c12,
+    c13,
+    c14,
+    c15,
+    c16,
+    c17,
+    c18,
+    c19,
+    c20,
+    c21,
+    c22,
+    c23,
+    c24,
+    c25,
+    c26,
+    c27,
+    c28,
+    c29,
+    c30,
+    c31,
+
+    /* End of GP CHERI registers, the following are additional kernel-saved state. */
+    pcc,
+    expcause,
+
+    n_chericontextRegisters
+};
+#endif
+
 typedef uint64_t register_t;
 
 enum messageSizes {
@@ -97,6 +140,9 @@ extern const register_t syscallMessage[] VISIBLE;
 
 struct user_context {
     word_t registers[n_contextRegisters];
+#ifdef CONFIG_ARCH_CHERI
+    cheri_reg_t cheri_registers[n_chericontextRegisters];
+#endif /* CONFIG_ARCH_CHERI */
 };
 typedef struct user_context user_context_t;
 

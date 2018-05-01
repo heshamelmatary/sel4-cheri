@@ -12,6 +12,7 @@
 
 /*
  *
+ * Copyright 2018, Hesham Almatary, University of Cambridge <Hesham.Almatary@cl.cam.ac.uk>
  * Copyright 2016, 2017 Hesham Almatary, Data61/CSIRO <hesham.almatary@data61.csiro.au>
  * Copyright 2015, 2016 Hesham Almatary <heshamelmatary@gmail.com>
  */
@@ -43,6 +44,24 @@ typedef uint8_t seL4_Uint8;
 typedef node_id_t seL4_NodeId;
 typedef paddr_t seL4_PAddr;
 typedef dom_t seL4_Domain;
+
+#ifdef CONFIG_ARCH_CHERI
+struct cheri_reg {
+    uint64_t base;
+    uint64_t length;
+    uint64_t offset;
+
+    uint32_t uperms : 20;
+    uint32_t perms  : 11;
+    uint32_t sealed : 1;
+
+        uint32_t otype    : 24;
+        uint32_t reserved : 7;
+        uint32_t tag      : 1;
+    };
+
+    typedef struct cheri_reg cheri_reg_t;
+#endif /* CONFIG_ARCH_CHERI */
 
 #define wordBits BIT(wordRadix)
 
