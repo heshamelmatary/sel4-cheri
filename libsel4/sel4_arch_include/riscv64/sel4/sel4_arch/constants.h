@@ -31,7 +31,12 @@
 #define seL4_NotificationBits   5
 #define seL4_EndpointBits       4
 #define seL4_IPCBufferSizeBits  10
+
+#ifdef CONFIG_ARCH_CHERI
+#define seL4_TCBBits            12
+#else
 #define seL4_TCBBits            10
+#endif
 
 /* Sv39/Sv48 pages/ptes sizes */
 #define seL4_PageTableEntryBits 3
