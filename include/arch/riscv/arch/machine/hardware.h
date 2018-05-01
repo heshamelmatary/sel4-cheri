@@ -110,4 +110,8 @@ pageBitsForSize(vm_page_size_t pagesize)
 #define LOAD_S STRINGIFY(LOAD)
 #define STORE_S STRINGIFY(STORE)
 
+#ifdef CONFIG_ARCH_CHERI
+#define LOAD_CHERI STRINGIFY(LC)
+#define STORE_CHERI STRINGIFY(SC)
+#endif
 #endif /* !__ARCH_MACHINE_HARDWARE_H */

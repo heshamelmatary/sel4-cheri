@@ -47,6 +47,35 @@ void VISIBLE NORETURN restore_user_context(void)
 
     NODE_UNLOCK_IF_HELD;
 
+#ifdef CONFIG_ARCH_CHERI
+    UNUSED register word_t cur_cheri_reg asm("t1") = (word_t) NODE_STATE(ksCurThread)->tcbArch.tcbContext.cheri_registers;
+#endif
+
+#ifdef CONFIG_ARCH_CHERI
+    asm volatile(
+        LOAD_CHERI "  c0, (0*%[CREGSIZE])(t1)  \n"
+        LOAD_CHERI "  c1, (1*%[CREGSIZE])(t1)  \n"
+        LOAD_CHERI "  c2, (2*%[CREGSIZE])(t1)  \n"
+        LOAD_CHERI "  c3, (3*%[CREGSIZE])(t1)  \n"
+        LOAD_CHERI "  c4, (4*%[CREGSIZE])(t1)  \n"
+        LOAD_CHERI "  c5, (5*%[CREGSIZE])(t1)  \n"
+        LOAD_CHERI "  c6, (6*%[CREGSIZE])(t1)  \n"
+        LOAD_CHERI "  c7, (7*%[CREGSIZE])(t1)  \n"
+        LOAD_CHERI "  c8, (8*%[CREGSIZE])(t1)  \n"
+        LOAD_CHERI "  c9, (9*%[CREGSIZE])(t1) \n"
+        LOAD_CHERI "  c10, (10*%[CREGSIZE])(t1) \n"
+        LOAD_CHERI "  c11, (11*%[CREGSIZE])(t1) \n"
+        LOAD_CHERI "  c12, (12*%[CREGSIZE])(t1) \n"
+        LOAD_CHERI "  c13, (13*%[CREGSIZE])(t1) \n"
+        LOAD_CHERI "  c14, (14*%[CREGSIZE])(t1) \n"
+        LOAD_CHERI "  c15, (15*%[CREGSIZE])(t1) \n"
+        : /* no output */
+        :
+        [CREGSIZE] "i" (sizeof(cheri_reg_t)),
+        [cur_cheri] "r" (cur_cheri_reg)
+    );
+#endif
+
     asm volatile(
         "mv t0, %[cur_thread]       \n"
         LOAD_S " ra, (0*%[REGSIZE])(t0)  \n"
