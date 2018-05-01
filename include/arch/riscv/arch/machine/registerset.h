@@ -151,7 +151,7 @@ extern const register_t syscallMessage[] VISIBLE;
 struct user_context {
     word_t registers[n_contextRegisters];
 #ifdef CONFIG_ARCH_CHERI
-    cheri_reg_t cheri_registers[n_chericontextRegisters];
+    cheri_reg_t cheri_registers[n_chericontextRegisters] ALIGN(sizeof(cheri_reg_t));
 #endif /* CONFIG_ARCH_CHERI */
 };
 typedef struct user_context user_context_t;
