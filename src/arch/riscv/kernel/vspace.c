@@ -108,6 +108,46 @@ map_kernel_window(void)
     /* now we should be mapping the kernel base, starting again from PADDR_LOAD */
     assert(pptr == KERNEL_BASE);
     paddr = PADDR_LOAD;
+
+#ifdef CONFIG_PLAT_FREEDOMU
+    /* FreedomU has 1 GiB of DRAM starting at 0x80000000.
+     * Need to map memory in 2-level PTs Sv39
+     */
+    assert(IS_ALIGNED(pptr, RISCV_GET_LVL_PGSIZE_BITS(2)));
+    assert(IS_ALIGNED(paddr, RISCV_GET_LVL_PGSIZE_BITS(2)));
+    kernel_pageTables[0][RISCV_GET_PT_INDEX(pptr, 1)] =
+        pte_new(
+            kpptr_to_paddr(kernel_pageTables[1]) >> seL4_PageBits,
+            0,  /* sw */
+            1,  /* dirty */
+            1,  /* accessed */
+            1,  /* global */
+            0,  /* user */
+            0,  /* execute */
+            0,  /* write */
+            0,  /* read */
+            1   /* valid */
+        );
+
+    for (int page = RISCV_GET_PT_INDEX(pptr, 2); page < BIT(PT_INDEX_BITS); page++) {
+        kernel_pageTables[1][page] =
+            pte_new(
+                paddr >> seL4_PageBits,
+                0,  /* sw */
+                1,  /* dirty */
+                1,  /* accessed */
+                1,  /* global */
+                0,  /* user */
+                1,  /* execute */
+                1,  /* write */
+                1,  /* read */
+                1   /* valid */
+            );
+
+        pptr += RISCV_GET_LVL_PGSIZE(2);
+        paddr += RISCV_GET_LVL_PGSIZE(2);
+    }
+#else
     /* pptr will overflow at the end of the address range so this loop condition looks odd */
     while (pptr >= KERNEL_BASE) {
         assert(IS_ALIGNED(pptr, RISCV_GET_LVL_PGSIZE_BITS(1)));
@@ -128,6 +168,7 @@ map_kernel_window(void)
         pptr += RISCV_GET_LVL_PGSIZE(1);
         paddr += RISCV_GET_LVL_PGSIZE(1);
     }
+#endif
 }
 
 BOOT_CODE void

@@ -44,7 +44,11 @@
 /* This represents the physical address that the kernel image will be linked to. This needs to
  * be on a 1gb boundary as we currently require being able to creating a mapping to this address
  * as the largest frame size */
+#ifdef CONFIG_PLAT_FREEDOMU
+#define PADDR_LOAD 0x81000000lu
+#else
 #define PADDR_LOAD 0xC0000000lu
+#endif
 
 #ifdef CONFIG_SEL4_RV_MACHINE
 #define PADDR_TOP -1UL

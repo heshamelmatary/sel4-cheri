@@ -34,7 +34,11 @@
  * KERNEL_BASE there are 254 entries remaining, which represents how much physical memory
  * can be used */
 #ifdef CONFIG_SEL4_RV_MACHINE
+#ifdef CONFIG_PLAT_FREEDOMU
+#define KERNEL_BASE      0x0000000081000000lu
+#else
 #define KERNEL_BASE      0x00000000C0000000lu
+#endif
 #else
 #define KERNEL_BASE      0xFFFFFFFF80000000lu
 #endif
