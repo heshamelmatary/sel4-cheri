@@ -35,12 +35,14 @@
  * can be used */
 #ifdef CONFIG_SEL4_RV_MACHINE
 #ifdef CONFIG_PLAT_FREEDOMU
+#define KERNEL_UART_BASE 0x0lu
 #define KERNEL_BASE      0x0000000081000000lu
 #else
 #define KERNEL_BASE      0x00000000C0000000lu
 #endif
 #else
 #define KERNEL_BASE      0xFFFFFFFF80000000lu
+#define KERNEL_UART_BASE 0xFFFFFFFF40000000lu
 #endif
 #else
 #error Only PT_LEVELS == 3 is supported

@@ -226,11 +226,13 @@ init_cpu(void)
 }
 
 /* This and only this function initialises the platform. It does NOT initialise any kernel state. */
-
 BOOT_CODE static void
 init_plat(region_t dtb)
 {
     parseFDT((void*)dtb.start);
+    query_uart((void *)dtb.start);
+    query_uart16550((void *)dtb.start);
+
     initIRQController();
     initTimer();
 }

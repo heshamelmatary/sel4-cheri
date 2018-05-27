@@ -115,10 +115,49 @@ void handle_exception(void)
     }
 }
 
+volatile uint8_t* uart16550;
+
+#define UART_REG_QUEUE     0
+#define UART_REG_LINESTAT  5
+#define UART_REG_STATUS_RX 0x01
+#define UART_REG_STATUS_TX 0x20
+
+void uart16550_putchar(uint8_t ch);
+void uart16550_putchar(uint8_t ch)
+{
+    while ((uart16550[UART_REG_LINESTAT] & UART_REG_STATUS_TX) == 0);
+    uart16550[UART_REG_QUEUE] = ch;
+}
+
+#define UART_REG_TXFIFO         0
+#define UART_REG_RXFIFO         1
+#define UART_REG_TXCTRL         2
+#define UART_REG_RXCTRL         3
+#define UART_REG_DIV            4
+
+#define UART_TXEN                0x1
+#define UART_RXEN                0x1
+
+void uart_putchar(uint8_t ch);
+extern volatile uint32_t *uart;
+
+void uart_putchar(uint8_t ch)
+{
+    volatile uint32_t *tx = uart + UART_REG_TXFIFO;
+    while ((int32_t)(*tx) < 0);
+    *tx = ch;
+}
+
 #ifdef CONFIG_PRINTING
 void
 putConsoleChar(unsigned char c)
 {
-    sbi_console_putchar(c);
+    if (uart) {
+        uart_putchar((uint8_t) c);
+    }  else if (uart16550) {
+        uart16550_putchar((uint8_t) c);
+    } else {
+        sbi_console_putchar(c);
+    }
 }
 #endif

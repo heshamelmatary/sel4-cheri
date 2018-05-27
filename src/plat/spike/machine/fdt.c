@@ -24,6 +24,17 @@
  * MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
+/*
+* Copyright (c) 2018, Hesham Almatary <Hesham.Almatary@cl.cam.ac.uk>
+* All rights reserved.
+*
+* This software was was developed in part by SRI International and the University of
+* Cambridge Computer Laboratory (Department of Computer Science and
+* Technology) under DARPA contract HR0011-18-C-0016 ("ECATS"), as part of the
+* DARPA SSITH research programme.
+*/
+
+
 /* This file is copied from RISC-V tools. It's modified to work with seL4 */
 
 #include <stdint.h>
@@ -42,33 +53,6 @@
 #define FDT_PROP    3
 #define FDT_NOP     4
 #define FDT_END     9
-
-struct fdt_header {
-    uint32_t magic;
-    uint32_t totalsize;
-    uint32_t off_dt_struct;
-    uint32_t off_dt_strings;
-    uint32_t off_mem_rsvmap;
-    uint32_t version;
-    uint32_t last_comp_version; /* <= 17 */
-    uint32_t boot_cpuid_phys;
-    uint32_t size_dt_strings;
-    uint32_t size_dt_struct;
-};
-
-struct fdt_scan_node {
-    const struct fdt_scan_node *parent;
-    const char *name;
-    int address_cells;
-    int size_cells;
-};
-
-struct fdt_scan_prop {
-    const struct fdt_scan_node *node;
-    const char *name;
-    uint32_t *value;
-    int len; // in bytes of value
-};
 
 /* workaround because string literals are not supported by the C parser */
 const char fdt_address_cells[] = {'#', 'a', 'd', 'd', 'r', 'e', 's', 's', '-', 'c', 'e', 'l', 'l', 's', 0};
@@ -219,3 +203,216 @@ uint32_t fdt_size(void *fdt)
     }
     return bswap(header->totalsize);
 }
+
+#define UART_REG_TXFIFO         0
+#define UART_REG_RXFIFO         1
+#define UART_REG_TXCTRL         2
+#define UART_REG_RXCTRL         3
+#define UART_REG_DIV            4
+
+#define UART_TXEN                0x1
+#define UART_RXEN                0x1
+
+static uint32_t *fdt_scan_helper_pk(
+    uint32_t *lex,
+    const char *strings,
+    struct fdt_scan_node *node,
+    const struct fdt_cb *cb)
+{
+    struct fdt_scan_node child;
+    struct fdt_scan_prop prop;
+    int last = 0;
+
+    child.parent = node;
+    // these are the default cell counts, as per the FDT spec
+    child.address_cells = 2;
+    child.size_cells = 1;
+    prop.node = node;
+
+    while (1) {
+        switch (bswap(lex[0])) {
+        case FDT_NOP: {
+            lex += 1;
+            break;
+        }
+        case FDT_PROP: {
+            assert (!last);
+            prop.name  = strings + bswap(lex[2]);
+            prop.len   = bswap(lex[1]);
+            prop.value = lex + 3;
+            if (node && !strncmp(prop.name, "#address-cells", 14)) {
+                node->address_cells = bswap(lex[3]);
+            }
+            if (node && !strncmp(prop.name, "#size-cells", 11))    {
+                node->size_cells    = bswap(lex[3]);
+            }
+            lex += 3 + (prop.len + 3) / 4;
+            cb->prop(&prop, cb->extra);
+            break;
+        }
+        case FDT_BEGIN_NODE: {
+            uint32_t *lex_next;
+            if (!last && node && cb->done) {
+                cb->done(node, cb->extra);
+            }
+            last = 1;
+            child.name = (const char *)(lex + 1);
+            if (cb->open) {
+                cb->open(&child, cb->extra);
+            }
+            lex_next = fdt_scan_helper_pk(
+                           lex + 2 + strnlen(child.name, 100) / 4,
+                           strings, &child, cb);
+            if (cb->close && cb->close(&child, cb->extra) == -1)
+                while (lex != lex_next) {
+                    *lex++ = bswap(FDT_NOP);
+                }
+            lex = lex_next;
+            break;
+        }
+        case FDT_END_NODE: {
+            if (!last && node && cb->done) {
+                cb->done(node, cb->extra);
+            }
+            return lex + 1;
+        }
+        default: { // FDT_END
+            if (!last && node && cb->done) {
+                cb->done(node, cb->extra);
+            }
+            return lex;
+        }
+        }
+    }
+}
+
+void fdt_scan(word_t fdt, const struct fdt_cb *cb)
+{
+    struct fdt_header *header = (struct fdt_header *)fdt;
+
+    // Only process FDT that we understand
+    if (bswap(header->magic) != FDT_MAGIC ||
+            bswap(header->last_comp_version) > FDT_VERSION) {
+        return;
+    }
+
+    const char *strings = (const char *)(fdt + bswap(header->off_dt_strings));
+    uint32_t *lex = (uint32_t *)(fdt + bswap(header->off_dt_struct));
+
+    fdt_scan_helper_pk(lex, strings, 0, cb);
+}
+
+volatile uint32_t *uart;
+struct uart_scan {
+    int compat;
+    uint64_t reg;
+};
+
+static void uart_open(const struct fdt_scan_node *node, void *extra)
+{
+    struct uart_scan *scan = (struct uart_scan *)extra;
+    memset(scan, 0, sizeof(*scan));
+}
+
+static void uart_prop(const struct fdt_scan_prop *prop, void *extra)
+{
+    struct uart_scan *scan = (struct uart_scan *)extra;
+    if (!strncmp(prop->name, "compatible", 10) && !strncmp((const char*)prop->value, "sifive,uart0", 12)) {
+        scan->compat = 1;
+    } else if (!strncmp(prop->name, "reg", 3)) {
+        fdt_get_address(prop->node->parent, prop->value, &scan->reg);
+    }
+}
+
+static void uart_done(const struct fdt_scan_node *node, void *extra)
+{
+    struct uart_scan *scan = (struct uart_scan *)extra;
+    if (!scan->compat || !scan->reg || uart) {
+        return;
+    }
+
+    // Enable Rx/Tx channels
+    uart = (void*)(word_t)scan->reg;
+#ifdef KERNEL_UART_BASE
+    uart = (void*) ((word_t) uart | KERNEL_UART_BASE);
+#endif
+    uart[UART_REG_TXCTRL] = UART_TXEN;
+    uart[UART_REG_RXCTRL] = UART_RXEN;
+}
+
+void query_uart(void *fdt)
+{
+    struct fdt_cb cb;
+    struct uart_scan scan;
+
+    memset(&cb, 0, sizeof(cb));
+    cb.open = uart_open;
+    cb.prop = uart_prop;
+    cb.done = uart_done;
+    cb.extra = &scan;
+
+    fdt_scan((word_t)fdt, &cb);
+}
+
+volatile uint8_t* uart16550;
+
+#define UART_REG_QUEUE     0
+#define UART_REG_LINESTAT  5
+#define UART_REG_STATUS_RX 0x01
+#define UART_REG_STATUS_TX 0x20
+
+struct uart16550_scan {
+    int compat;
+    uint64_t reg;
+};
+
+static void uart16550_open(const struct fdt_scan_node *node, void *extra)
+{
+    struct uart16550_scan *scan = (struct uart16550_scan *)extra;
+    memset(scan, 0, sizeof(*scan));
+}
+
+static void uart16550_prop(const struct fdt_scan_prop *prop, void *extra)
+{
+    struct uart16550_scan *scan = (struct uart16550_scan *)extra;
+    if (!strncmp(prop->name, "compatible", 10) && !strncmp((const char*)prop->value, "ns16550a", 8)) {
+        scan->compat = 1;
+    } else if (!strncmp(prop->name, "reg", 3)) {
+        fdt_get_address(prop->node->parent, prop->value, &scan->reg);
+    }
+}
+
+static void uart16550_done(const struct fdt_scan_node *node, void *extra)
+{
+    struct uart16550_scan *scan = (struct uart16550_scan *)extra;
+    if (!scan->compat || !scan->reg || uart16550) {
+        return;
+    }
+
+    uart16550 = (void*)(word_t)scan->reg;
+#ifdef KERNEL_UART_BASE
+    uart16550 = (void*) ((word_t) uart16550 | KERNEL_UART_BASE);
+#endif
+    // http://wiki.osdev.org/Serial_Ports
+    uart16550[1] = 0x00;    // Disable all interrupts
+    uart16550[3] = 0x80;    // Enable DLAB (set baud rate divisor)
+    uart16550[0] = 0x03;    // Set divisor to 3 (lo byte) 38400 baud
+    uart16550[1] = 0x00;    //                  (hi byte)
+    uart16550[3] = 0x03;    // 8 bits, no parity, one stop bit
+    uart16550[2] = 0xC7;    // Enable FIFO, clear them, with 14-byte threshold
+}
+
+void query_uart16550(void *fdt)
+{
+    struct fdt_cb cb;
+    struct uart16550_scan scan;
+
+    memset(&cb, 0, sizeof(cb));
+    cb.open = uart16550_open;
+    cb.prop = uart16550_prop;
+    cb.done = uart16550_done;
+    cb.extra = &scan;
+
+    fdt_scan((word_t)fdt, &cb);
+}
+

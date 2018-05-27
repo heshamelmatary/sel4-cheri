@@ -115,6 +115,23 @@ map_kernel_window(void)
      */
     assert(IS_ALIGNED(pptr, RISCV_GET_LVL_PGSIZE_BITS(2)));
     assert(IS_ALIGNED(paddr, RISCV_GET_LVL_PGSIZE_BITS(2)));
+
+#ifdef KERNEL_UART_BASE
+    kernel_pageTables[0][RISCV_GET_PT_INDEX(KERNEL_UART_BASE, 1)] =
+        pte_new(
+            0,
+            0,  /* sw */
+            1,  /* dirty */
+            1,  /* accessed */
+            1,  /* global */
+            0,  /* user */
+            0,  /* execute */
+            1,  /* write */
+            1,  /* read */
+            1   /* valid */
+        );
+#endif
+
     kernel_pageTables[0][RISCV_GET_PT_INDEX(pptr, 1)] =
         pte_new(
             kpptr_to_paddr(kernel_pageTables[1]) >> seL4_PageBits,
