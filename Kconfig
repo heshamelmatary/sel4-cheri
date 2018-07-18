@@ -324,6 +324,12 @@ menu "seL4 System"
             depends on ARCH_RISCV
             help
                 Support for spike platform
+
+        config PLAT_FREEDOMU
+            bool "PLAT_FREEDOMU"
+            depends on ARCH_RISCV_RV64
+            help
+                Support for Freedom Unleashed platform (on QEMU and FPGA)
     endchoice
 
     config ARM_HYPERVISOR_SUPPORT
