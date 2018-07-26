@@ -27,3 +27,10 @@ config PT_LEVELS
         Number of page tables levels for RISC-V depends on the mode. For
         example there are: 2, 3 and 4 levels on Sv32, Sv39, Sv48 RISC-V paging
         modes respectively.
+
+config RISCV_PAGETABLES_POOL
+    int "Max number of page table needed for a platform"
+    default 3
+    help
+        Max Number of page tables for RISC-V depends on the memory size, alignments and
+        the desired kernel mapping granularity.

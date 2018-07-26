@@ -38,7 +38,10 @@ extern asid_pool_t *riscvKSASIDTable[BIT(asidHighBits)];
 /* RISC-V has n-level page tables (depending on configured paging mode),
  * each of which is 4KiB, PTEs are of word_t size
   */
-extern pte_t kernel_pageTables[CONFIG_PT_LEVELS][BIT(PT_INDEX_BITS)] ALIGN(BIT(seL4_PageTableBits));
+extern pte_t kernel_pageTables[CONFIG_RISCV_PAGETABLES_POOL][BIT(PT_INDEX_BITS)] ALIGN(BIT(seL4_PageTableBits));
+
+/* Points to the first free available PT during the bootstraping process */
+extern int riscvKSPTAllocPointer;
 
 /* Address of pk trap address */
 extern word_t pk_trap_addr;
