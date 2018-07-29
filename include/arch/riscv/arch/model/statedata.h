@@ -40,9 +40,6 @@ extern asid_pool_t *riscvKSASIDTable[BIT(asidHighBits)];
   */
 extern pte_t kernel_pageTables[CONFIG_RISCV_PAGETABLES_POOL][BIT(PT_INDEX_BITS)] ALIGN(BIT(seL4_PageTableBits));
 
-/* Points to the first free available PT during the bootstraping process */
-extern int riscvKSPTAllocPointer;
-
 /* Address of pk trap address */
 extern word_t pk_trap_addr;
 

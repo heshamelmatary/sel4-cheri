@@ -29,8 +29,8 @@ config PT_LEVELS
         modes respectively.
 
 config RISCV_PAGETABLES_POOL
-    int "Max number of page table needed for a platform"
+    int "Max number of page tables needed for mapping kernel memory"
     default 3
     help
-        Max Number of page tables for RISC-V depends on the memory size, alignments and
-        the desired kernel mapping granularity.
+        Max Number of page tables for kernel memory in RISC-V depends on the available memory size,
+        alignments and the desired kernel mapping granularity.

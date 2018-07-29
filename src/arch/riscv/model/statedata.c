@@ -30,7 +30,5 @@ asid_pool_t *riscvKSASIDTable[BIT(asidHighBits)];
 
 pte_t kernel_pageTables[CONFIG_RISCV_PAGETABLES_POOL][BIT(PT_INDEX_BITS)] ALIGN(BIT(seL4_PageTableBits));
 
-BOOT_DATA int riscvKSPTAllocPointer = 0;
-
 /* Address of pk trap address */
 UNUSED word_t pk_trap_addr;

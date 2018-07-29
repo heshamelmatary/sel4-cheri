@@ -75,24 +75,18 @@ RISCVGetReadFromVMRights(vm_rights_t vm_rights)
 
 /* ==================== BOOT CODE STARTS HERE ==================== */
 
-BOOT_CODE static inline pte_t *alloc_pt_boot(void)
-{
-    /* If you got an assert error, try to increase the configured number of
-     * available PTs
-     */
-    assert(riscvKSPTAllocPointer < CONFIG_RISCV_PAGETABLES_POOL - 1);
-    return (pte_t *) &kernel_pageTables[++riscvKSPTAllocPointer];
-}
-
-BOOT_CODE static void map_kernel_region(pte_t *lvlnpt, int pt_level, word_t region_size, pptr_t pptr, paddr_t paddr)
+BOOT_CODE static int map_kernel_region(pte_t *lvlnpt, int pt_level, word_t region_size, pptr_t pptr, paddr_t paddr, int free_pt_index)
 {
     assert(CONFIG_PT_LEVELS > 1 && CONFIG_PT_LEVELS <= 4);
     assert(pt_level <= CONFIG_PT_LEVELS);
 
+    /* Make sure the new PT index is not out of page table bounds */
+    assert(free_pt_index < CONFIG_RISCV_PAGETABLES_POOL);
+
     /* The number of PT entries a region_size needs at $pt_level */
     int num_required_entries = ROUND_UP(region_size, RISCV_GET_LVL_PGSIZE(pt_level)) >> RISCV_GET_LVL_PGSIZE_BITS(pt_level);
 
-    /* Map the region at pt_level if its paddr is pt_level-aligned */
+    /* Map the region at pt_level of its paddr is pt_level-aligned */
     if (IS_ALIGNED(paddr, RISCV_GET_LVL_PGSIZE_BITS(pt_level))) {
 
         /* the pptr if a region must follow the paddr alignment */
@@ -124,7 +118,7 @@ BOOT_CODE static void map_kernel_region(pte_t *lvlnpt, int pt_level, word_t regi
         /* Allocate a page table */
         for (int pt_index = 0; pt_index < num_required_entries; pt_index++) {
 
-            pte_t *pt_pptr = alloc_pt_boot();
+            pte_t *pt_pptr = (pte_t *) &kernel_pageTables[free_pt_index];
             assert(pt_pptr);
             paddr_t pt_paddr = kpptr_to_paddr((void *)pt_pptr);
 
@@ -143,24 +137,25 @@ BOOT_CODE static void map_kernel_region(pte_t *lvlnpt, int pt_level, word_t regi
                 );
 
 
-            map_kernel_region((pte_t *)pt_pptr, pt_level + 1, RISCV_GET_LVL_PGSIZE(pt_level), pptr, paddr);
+            free_pt_index = map_kernel_region((pte_t *)pt_pptr, pt_level + 1, RISCV_GET_LVL_PGSIZE(pt_level), pptr, paddr, free_pt_index);
 
             pptr += RISCV_GET_LVL_PGSIZE(pt_level);
             paddr += RISCV_GET_LVL_PGSIZE(pt_level);
         }
     }
-}
 
+    return free_pt_index + 1;
+}
 
 BOOT_CODE VISIBLE void
 map_kernel_window(void)
 {
     /* Map the kernel window starting from PPTR_BASE until KERNEL_BASE */
     /* Start with level 1 page table, and try to map a kernel region with the biggest possiple page size */
-    map_kernel_region((pte_t *)&kernel_pageTables, 1, KERNEL_BASE - PPTR_BASE, PPTR_BASE, PADDR_BASE);
+    int next_free_index = map_kernel_region((pte_t *)&kernel_pageTables, 1, KERNEL_BASE - PPTR_BASE, PPTR_BASE, PADDR_BASE, 0);
     /* mapping of kernelBase (virtual address) to kernel's physBase  */
     /* Start with level 1 page table, and try to map a kernel region with the biggest possiple page size */
-    map_kernel_region((pte_t *)&kernel_pageTables, 1, UINTPTR_MAX - KERNEL_BASE, KERNEL_BASE, PADDR_LOAD);
+    map_kernel_region((pte_t *)&kernel_pageTables, 1, UINTPTR_MAX - KERNEL_BASE, KERNEL_BASE, PADDR_LOAD, next_free_index);
 }
 
 BOOT_CODE void
