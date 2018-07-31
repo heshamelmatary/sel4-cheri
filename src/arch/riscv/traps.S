@@ -50,22 +50,72 @@ trap_entry:
   csrrw t0, sscratch, t0
 
 #ifdef CONFIG_ARCH_CHERI
-  SC   c0, (288 + 0*CREGSIZE)(t0)
-  SC   c1, (288 + 1*CREGSIZE)(t0)
-  SC   c2, (288 + 2*CREGSIZE)(t0)
-  SC   c3, (288 + 3*CREGSIZE)(t0)
-  SC   c4, (288 + 4*CREGSIZE)(t0)
-  SC   c5, (288 + 5*CREGSIZE)(t0)
-  SC   c6, (288 + 6*CREGSIZE)(t0)
-  SC   c7, (288 + 7*CREGSIZE)(t0)
-  SC   c8, (288 + 8*CREGSIZE)(t0)
-  SC   c9, (288 + 9*CREGSIZE)(t0)
-  SC   c10, (288 + 10*CREGSIZE)(t0)
-  SC   c11, (288 + 11*CREGSIZE)(t0)
-  SC   c12, (288 + 12*CREGSIZE)(t0)
-  SC   c13, (288 + 13*CREGSIZE)(t0)
-  SC   c14, (288 + 14*CREGSIZE)(t0)
-  SC   c15, (288 + 15*CREGSIZE)(t0)
+  cspecialrw c3, c0, ddc
+  csetoffset c3, c3, t0
+
+  SC   c0, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c1, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c2, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c3, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c4, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c5, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c6, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c7, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c8, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c9, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c10, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c11, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c12, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c13, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c14, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c15, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c16, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c17, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c18, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c19, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c20, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c21, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c22, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c23, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c24, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c25, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c26, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c27, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c28, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c29, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c30, c3
+  cincoffsetimmediate c3, c3, CREGSIZE
+  SC   c31, c3
 #endif
 
   STORE ra, (0*REGBYTES)(t0)

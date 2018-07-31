@@ -57,12 +57,12 @@ struct cheri_reg {
     uint32_t perms  : 11;
     uint32_t sealed : 1;
 
-    uint32_t otype    : 24;
-    uint32_t reserved : 7;
-    uint32_t tag      : 1;
-};
+        uint32_t otype    : 24;
+        uint32_t reserved : 7;
+        uint32_t tag      : 1;
+    };
 
-typedef struct cheri_reg cheri_reg_t;
+    typedef struct cheri_reg cheri_reg_t;
 #endif /* CONFIG_ARCH_CHERI */
 
 #define wordBits BIT(wordRadix)

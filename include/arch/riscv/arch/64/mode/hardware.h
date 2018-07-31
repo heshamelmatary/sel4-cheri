@@ -21,7 +21,7 @@
 #define LOAD  ld
 #define STORE sd
 
-#define LC lc
-#define SC sc
+#define LC lducap
+#define SC sqcap
 
 #endif /* __ARCH_MODE_HARDWARE_H */
