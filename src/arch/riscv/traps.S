@@ -35,7 +35,12 @@
 #include <arch/encoding.h>
 
 #define REGBYTES (CONFIG_WORD_SIZE / 8)
+
+#ifdef CONFIG_ARCH_CHERI128
+#define CREGSIZE (REGBYTES * 2)
+#else
 #define CREGSIZE (REGBYTES * 4)
+#endif
 
 .section .text
 
@@ -52,6 +57,7 @@ trap_entry:
 #ifdef CONFIG_ARCH_CHERI
   cspecialrw c3, c0, ddc
   csetoffset c3, c3, t0
+  cincoffsetimmediate c3, c3, REGBYTES*36
 
   SC   c0, c3
   cincoffsetimmediate c3, c3, CREGSIZE
@@ -118,6 +124,7 @@ trap_entry:
   SC   c31, c3
 #endif
 
+#ifndef CONFIG_CHERI_MERGED_RF
   STORE ra, (0*REGBYTES)(t0)
   STORE sp, (1*REGBYTES)(t0)
   STORE gp, (2*REGBYTES)(t0)
@@ -148,6 +155,7 @@ trap_entry:
   STORE t4, (28*REGBYTES)(t0)
   STORE t5, (29*REGBYTES)(t0)
   STORE t6, (30*REGBYTES)(t0)
+#endif
 
   /* save t0 value */
   csrr  x1, sscratch

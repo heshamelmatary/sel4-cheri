@@ -48,6 +48,12 @@ typedef dom_t seL4_Domain;
 typedef uint64_t timestamp_t;
 
 #ifdef CONFIG_ARCH_CHERI
+#ifdef CONFIG_ARCH_CHERI128
+struct cheri_reg {
+    uint64_t pesbt;
+    uint64_t cursor;
+};
+#else
 struct cheri_reg {
     uint64_t base;
     uint64_t length;
@@ -62,7 +68,10 @@ struct cheri_reg {
         uint32_t tag      : 1;
     };
 
-    typedef struct cheri_reg cheri_reg_t;
+#endif
+
+typedef struct cheri_reg cheri_reg_t;
+
 #endif /* CONFIG_ARCH_CHERI */
 
 #define wordBits BIT(wordRadix)

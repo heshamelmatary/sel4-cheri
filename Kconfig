@@ -139,6 +139,16 @@ menu "seL4 System"
         default y
         depends on ARCH_RISCV_RV64
 
+    config ARCH_CHERI128
+        bool "CHERI 128 Compression"
+        default y
+        depends on ARCH_CHERI
+
+    config CHERI_MERGED_RF
+        bool "CHERI Merged RF"
+        default y
+        depends on ARCH_CHERI
+
     config PLAT_EXYNOS54XX
        bool
        default n

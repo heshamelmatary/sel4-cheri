@@ -61,11 +61,11 @@ void VISIBLE NORETURN restore_user_context(void)
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
         LOAD_CHERI "  c1, c3  \n"
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
-        LOAD_CHERI "  c2, c3  \n"
+        /*LOAD_CHERI "  c2, c3  \n"*/
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
-        LOAD_CHERI "  c4, c3  \n"
+        /*LOAD_CHERI "  c4, c3  \n"*/
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
-        LOAD_CHERI "  c5, c3  \n"
+        /*LOAD_CHERI "  c5, c3  \n"*/
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
         LOAD_CHERI "  c6, c3  \n"
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
@@ -128,6 +128,7 @@ void VISIBLE NORETURN restore_user_context(void)
 
     asm volatile(
         "mv t0, %[cur_thread]       \n"
+#ifndef CONFIG_CHERI_MERGED_RF
         LOAD_S " ra, (0*%[REGSIZE])(t0)  \n"
         LOAD_S "  sp, (1*%[REGSIZE])(t0)  \n"
         LOAD_S "  gp, (2*%[REGSIZE])(t0)  \n"
@@ -162,6 +163,7 @@ void VISIBLE NORETURN restore_user_context(void)
         LOAD_S "  t1, (3*%[REGSIZE])(t0)  \n"
         /* get restored tp */
         "add tp, t1, x0  \n"
+#endif
         /* get eepc */
         LOAD_S "  t1, (34*%[REGSIZE])(t0)\n"
         "csrw " EEPC ", t1  \n"
