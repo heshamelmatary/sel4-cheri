@@ -26,4 +26,19 @@ typedef unsigned char seL4_Uint8;
 typedef unsigned short seL4_Uint16;
 typedef unsigned int seL4_Uint32;
 
+#ifdef CONFIG_ARCH_CHERI
+#ifdef CONFIG_ARCH_CHERI128
+struct sel4_cap {
+    unsigned long long words[2];
+};
+
+#else
+struct sel4_cap {
+    unsigned long long words[4];
+};
+#endif
+
+typedef struct sel4_cap seL4_Cap;
+#endif /* CONFIG_ARCH_CHERI */
+
 #endif

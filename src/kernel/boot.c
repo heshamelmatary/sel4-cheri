@@ -238,6 +238,10 @@ create_bi_frame_cap(
     /* create a cap of it and write it into the root CNode */
     cap = create_mapped_it_frame_cap(pd_cap, pptr, vptr, IT_ASID, false, false);
     write_slot(SLOT_PTR(pptr_of_cap(root_cnode_cap), seL4_CapBootInfoFrame), cap);
+
+    for (int page_index = 1; page_index <= 31; page_index++) {
+        cap = create_mapped_it_frame_cap(pd_cap, pptr + (page_index << PAGE_BITS), vptr + (page_index << PAGE_BITS), IT_ASID, false, false);
+    }
 }
 
 BOOT_CODE region_t

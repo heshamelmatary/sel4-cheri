@@ -53,6 +53,11 @@ struct cheri_reg {
     uint64_t pesbt;
     uint64_t cursor;
 };
+
+struct sel4_cap {
+    seL4_Word words[2];
+};
+
 #else
 struct cheri_reg {
     uint64_t base;
@@ -68,8 +73,12 @@ struct cheri_reg {
         uint32_t tag      : 1;
     };
 
+    struct sel4_cap {
+    seL4_Word words[4];
+};
 #endif
 
+typedef struct sel4_cap seL4_Cap;
 typedef struct cheri_reg cheri_reg_t;
 
 #endif /* CONFIG_ARCH_CHERI */

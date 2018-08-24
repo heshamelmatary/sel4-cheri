@@ -69,6 +69,7 @@ typedef struct {
     seL4_UntypedDesc  untypedList[CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS]; /* information about each untyped */
     /* the untypedList should be the last entry in this struct, in order
      * to make this struct easier to represent in other languages */
+    seL4_Cap          user_cnode_root[ 1 << CONFIG_ROOT_CNODE_SIZE_BITS];
 } SEL4_PACKED seL4_BootInfo;
 
 /* If extraLen > 0 then 4K after the start of bootinfo is a region of extraLen additional

@@ -396,8 +396,17 @@ try_init_kernel(
 
 #ifdef CONFIG_DEBUG_BUILD
     for (int i = 0; i <= ndks_boot.slot_pos_cur; i++) {
-        cap_t cap = *((cap_t *) SLOT_PTR(cap_cnode_cap_get_capCNodePtr(root_cnode_cap) , i));
-        printf("#%d: type = %d : 0x%llx%llx\n", i, (int) cap_get_capType(cap), cap.words[1], cap.words[0]);
+        seL4_Cap cap = *((seL4_Cap *) SLOT_PTR(cap_cnode_cap_get_capCNodePtr(root_cnode_cap) , i));
+        printf("#%d: 0x%lx%lx\n", i, cap.words[1], cap.words[0]);
+
+        /* Copy all root cnoide caps to user's bootinfo */
+        ndks_boot.bi_frame->user_cnode_root[i] = cap;
+
+#ifdef CONFIG_ARCH_CHERI
+        /* Tag it */
+        asm volatile("ctag %0" :: "r" (&(ndks_boot.bi_frame->user_cnode_root[i])));
+#endif
+
     }
 #endif
 
