@@ -537,18 +537,20 @@ unmapPageTable(asid_t asid, vptr_t vptr, pte_t* target_pt)
             /* couldn't find it */
             return;
         }
-        pt = getPPtrFromHWPTE(ptSlot);
-        if (pt == target_pt) {
+        pte_t *ptt = getPPtrFromHWPTE(ptSlot);
+        if (ptt == target_pt) {
             /* Found the PT Slot */
             ptSlot = pt + RISCV_GET_PT_INDEX(vptr, i - 1);
             break;
         }
+
+        pt = ptt;
         ptSlot = pt + RISCV_GET_PT_INDEX(vptr, i);
     }
 
     if (pt != target_pt) {
         /* didn't find it */
-        return;
+        //return;
     }
 
     *ptSlot = pte_new(
