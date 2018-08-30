@@ -396,7 +396,7 @@ try_init_kernel(
 
 #ifdef CONFIG_ARCH_CHERI
     for (int i = 0; i <= ndks_boot.slot_pos_cur; i++) {
-        //seL4_Cap cap = *((seL4_Cap *) SLOT_PTR(cap_cnode_cap_get_capCNodePtr(root_cnode_cap) , i));
+        seL4_Cap cap = *((seL4_Cap *) SLOT_PTR(cap_cnode_cap_get_capCNodePtr(root_cnode_cap) , i));
         printf("#%d: 0x%lx%lx\n", i, cap.words[1], cap.words[0]);
 
         /* Copy all root cnoide caps to user's bootinfo */
