@@ -86,7 +86,10 @@ create_mapped_it_frame_cap(cap_t pd_cap, pptr_t pptr, vptr_t vptr, asid_t asid, 
               vptr                             /* capFMappedAddress    */
           );
 
-    map_it_frame_cap(pd_cap, cap);
+    if (!config_set(CONFIG_MMULESS)) {
+        map_it_frame_cap(pd_cap, cap);
+    }
+
     return cap;
 }
 
@@ -364,7 +367,6 @@ try_init_kernel(
         return false;
     }
 
-
     /* create the initial thread */
     tcb_t *initial = create_initial_thread(
                          root_cnode_cap,
@@ -437,27 +439,31 @@ try_init_kernel_mmuless(
     region_t dtb_reg = paddr_to_pptr_reg((p_region_t) {
         dtb_p_reg_start, dtb_p_reg_end
     });
-    pptr_t bi_frame_pptr;
-    vptr_t bi_frame_vptr;
-    vptr_t ipcbuf_vptr;
+
+    paddr_t bi_frame_ptr;
+    paddr_t ipcbuf_ptr;
     create_frames_of_region_ret_t create_frames_ret;
 
     /* convert from physical addresses to userland vptrs */
-    v_region_t ui_v_reg;
-    v_region_t it_v_reg;
-    ui_v_reg.start = (uint32_t) (ui_p_reg_start - pv_offset);
-    ui_v_reg.end   = (uint32_t) (ui_p_reg_end   - pv_offset);
+    //v_region_t ui_v_reg;
+    //ui_v_reg.start = (uint32_t) (ui_p_reg_start - pv_offset);
+    //ui_v_reg.end   = (uint32_t) (ui_p_reg_end   - pv_offset);
 
-    ipcbuf_vptr = ui_v_reg.end;
-    bi_frame_vptr = ipcbuf_vptr + BIT(PAGE_BITS);
+    //ipcbuf_vptr = ui_v_reg.end;
+    //bi_frame_vptr = ipcbuf_vptr + BIT(PAGE_BITS);
+
+    region_t ui_p_reg;
+    region_t it_p_reg;
+
+    ui_p_reg.start = (uint32_t) (ui_p_reg_start);
+    ui_p_reg.end   = (uint32_t) (ui_p_reg_end);
+
+    ipcbuf_ptr = ui_p_reg.end;
+    bi_frame_ptr = ipcbuf_ptr + BIT(PAGE_BITS);
 
     /* The region of the initial thread is the user image + ipcbuf and boot info */
-    it_v_reg.start = ui_v_reg.start;
-    it_v_reg.end = bi_frame_vptr + BIT(PAGE_BITS);
-
-    if (!config_set(CONFIG_SEL4_RV_MACHINE)) {
-        map_kernel_window();
-    }
+    it_p_reg.start = ui_p_reg.start;
+    it_p_reg.end = bi_frame_ptr + BIT(PAGE_BITS);
 
     /* initialise the CPU */
     init_cpu();
@@ -486,28 +492,30 @@ try_init_kernel_mmuless(
     init_irqs(root_cnode_cap);
 
     /* create the bootinfo frame */
-    bi_frame_pptr = allocate_bi_frame(0, CONFIG_MAX_NUM_NODES, ipcbuf_vptr);
-    if (!bi_frame_pptr) {
+    bi_frame_ptr = allocate_bi_frame(0, CONFIG_MAX_NUM_NODES, ipcbuf_ptr);
+    if (!bi_frame_ptr) {
         return false;
     }
 
+#if 0
     /* Construct an initial address space with enough virtual addresses
      * to cover the user image + ipc buffer and bootinfo frames */
     it_pd_cap = create_it_address_space(root_cnode_cap, it_v_reg);
     if (cap_get_capType(it_pd_cap) == cap_null_cap) {
         return false;
     }
+#endif
 
     /* Create and map bootinfo frame cap */
     create_bi_frame_cap(
         root_cnode_cap,
         it_pd_cap,
-        bi_frame_pptr,
-        bi_frame_vptr
+        bi_frame_ptr,
+        bi_frame_ptr
     );
 
     /* create the initial thread's IPC buffer */
-    ipcbuf_cap = create_ipcbuf_frame(root_cnode_cap, it_pd_cap, ipcbuf_vptr);
+    ipcbuf_cap = create_ipcbuf_frame(root_cnode_cap, it_pd_cap, ipcbuf_ptr);
     if (cap_get_capType(ipcbuf_cap) == cap_null_cap) {
         return false;
     }
@@ -526,12 +534,14 @@ try_init_kernel_mmuless(
     }
     ndks_boot.bi_frame->userImageFrames = create_frames_ret.region;
 
+#if 0
     /* create the initial thread's ASID pool */
     it_ap_cap = create_it_asid_pool(root_cnode_cap);
     if (cap_get_capType(it_ap_cap) == cap_null_cap) {
         return false;
     }
     write_it_asid_pool(it_ap_cap, it_pd_cap);
+#endif
 
     /* create the idle thread */
     if (!create_idle_thread()) {
@@ -539,17 +549,15 @@ try_init_kernel_mmuless(
     }
 
 
-    if (config_set(CONFIG_MMULESS)) {
-        v_entry = v_entry + pv_offset;
-    }
+    v_entry = v_entry + pv_offset;
 
     /* create the initial thread */
     tcb_t *initial = create_initial_thread(
                          root_cnode_cap,
                          it_pd_cap,
                          v_entry,
-                         bi_frame_vptr,
-                         ipcbuf_vptr,
+                         bi_frame_ptr,
+                         ipcbuf_ptr,
                          ipcbuf_cap
                      );
 
@@ -573,7 +581,6 @@ try_init_kernel_mmuless(
     bi_finalise();
 
     ksNumCPUs = 1;
-
     printf("Booting all finished, dropped to user space\n");
     return true;
 }
@@ -590,7 +597,7 @@ init_kernel(
 {
     pptr_t dtb_output = (pptr_t)paddr_to_pptr(dtb_output_p);
 
-#ifdef CONFIG_MMULESS
+#ifndef CONFIG_MMULESS
     bool_t result = try_init_kernel(ui_p_reg_start,
                                     ui_p_reg_end,
                                     dtb_output_p,

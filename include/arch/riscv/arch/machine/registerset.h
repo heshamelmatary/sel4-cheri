@@ -160,6 +160,11 @@ static inline void Arch_initContext(user_context_t* context)
 {
     /* Enable interrupts (when going to user-mode) */
     context->registers[STATUS] = config_set(CONFIG_SEL4_RV_MACHINE) ? MSTATUS_MPIE : SSTATUS_SPIE;
+
+    if (config_set(CONFIG_MMULESS)) {
+        /* User executes is in Machine mode */
+        context->registers[STATUS] |= MSTATUS_MPP;
+    }
 }
 
 static inline word_t CONST
