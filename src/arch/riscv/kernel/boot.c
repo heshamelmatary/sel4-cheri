@@ -413,6 +413,171 @@ try_init_kernel(
     return true;
 }
 
+static BOOT_CODE bool_t
+try_init_kernel_mmuless(
+    paddr_t ui_p_reg_start,
+    paddr_t ui_p_reg_end,
+    paddr_t dtb_p_reg_start,
+    paddr_t dtb_p_reg_end,
+    uint32_t pv_offset,
+    vptr_t  v_entry
+)
+{
+    cap_t root_cnode_cap;
+    cap_t it_pd_cap;
+    cap_t it_ap_cap;
+    cap_t ipcbuf_cap;
+    p_region_t boot_mem_reuse_p_reg = ((p_region_t) {
+        kpptr_to_paddr((void*)KERNEL_BASE), kpptr_to_paddr(ki_boot_end)
+    });
+    region_t boot_mem_reuse_reg = paddr_to_pptr_reg(boot_mem_reuse_p_reg);
+    region_t ui_reg = paddr_to_pptr_reg((p_region_t) {
+        ui_p_reg_start, ui_p_reg_end
+    });
+    region_t dtb_reg = paddr_to_pptr_reg((p_region_t) {
+        dtb_p_reg_start, dtb_p_reg_end
+    });
+    pptr_t bi_frame_pptr;
+    vptr_t bi_frame_vptr;
+    vptr_t ipcbuf_vptr;
+    create_frames_of_region_ret_t create_frames_ret;
+
+    /* convert from physical addresses to userland vptrs */
+    v_region_t ui_v_reg;
+    v_region_t it_v_reg;
+    ui_v_reg.start = (uint32_t) (ui_p_reg_start - pv_offset);
+    ui_v_reg.end   = (uint32_t) (ui_p_reg_end   - pv_offset);
+
+    ipcbuf_vptr = ui_v_reg.end;
+    bi_frame_vptr = ipcbuf_vptr + BIT(PAGE_BITS);
+
+    /* The region of the initial thread is the user image + ipcbuf and boot info */
+    it_v_reg.start = ui_v_reg.start;
+    it_v_reg.end = bi_frame_vptr + BIT(PAGE_BITS);
+
+    if (!config_set(CONFIG_SEL4_RV_MACHINE)) {
+        map_kernel_window();
+    }
+
+    /* initialise the CPU */
+    init_cpu();
+
+    /* initialize the platform */
+    init_plat(dtb_reg);
+
+    /* make the free memory available to alloc_region() */
+    init_freemem(ui_reg, dtb_reg);
+
+    /* create the root cnode */
+    root_cnode_cap = create_root_cnode();
+    if (cap_get_capType(root_cnode_cap) == cap_null_cap) {
+        return false;
+    }
+
+    /* create the cap for managing thread domains */
+    create_domain_cap(root_cnode_cap);
+
+    /* create the IRQ CNode */
+    if (!create_irq_cnode()) {
+        return false;
+    }
+
+    /* initialise the IRQ states and provide the IRQ control cap */
+    init_irqs(root_cnode_cap);
+
+    /* create the bootinfo frame */
+    bi_frame_pptr = allocate_bi_frame(0, CONFIG_MAX_NUM_NODES, ipcbuf_vptr);
+    if (!bi_frame_pptr) {
+        return false;
+    }
+
+    /* Construct an initial address space with enough virtual addresses
+     * to cover the user image + ipc buffer and bootinfo frames */
+    it_pd_cap = create_it_address_space(root_cnode_cap, it_v_reg);
+    if (cap_get_capType(it_pd_cap) == cap_null_cap) {
+        return false;
+    }
+
+    /* Create and map bootinfo frame cap */
+    create_bi_frame_cap(
+        root_cnode_cap,
+        it_pd_cap,
+        bi_frame_pptr,
+        bi_frame_vptr
+    );
+
+    /* create the initial thread's IPC buffer */
+    ipcbuf_cap = create_ipcbuf_frame(root_cnode_cap, it_pd_cap, ipcbuf_vptr);
+    if (cap_get_capType(ipcbuf_cap) == cap_null_cap) {
+        return false;
+    }
+
+    /* create all userland image frames */
+    create_frames_ret =
+        create_frames_of_region(
+            root_cnode_cap,
+            it_pd_cap,
+            ui_reg,
+            true,
+            pv_offset
+        );
+    if (!create_frames_ret.success) {
+        return false;
+    }
+    ndks_boot.bi_frame->userImageFrames = create_frames_ret.region;
+
+    /* create the initial thread's ASID pool */
+    it_ap_cap = create_it_asid_pool(root_cnode_cap);
+    if (cap_get_capType(it_ap_cap) == cap_null_cap) {
+        return false;
+    }
+    write_it_asid_pool(it_ap_cap, it_pd_cap);
+
+    /* create the idle thread */
+    if (!create_idle_thread()) {
+        return false;
+    }
+
+
+    if (config_set(CONFIG_MMULESS)) {
+        v_entry = v_entry + pv_offset;
+    }
+
+    /* create the initial thread */
+    tcb_t *initial = create_initial_thread(
+                         root_cnode_cap,
+                         it_pd_cap,
+                         v_entry,
+                         bi_frame_vptr,
+                         ipcbuf_vptr,
+                         ipcbuf_cap
+                     );
+
+    if (initial == NULL) {
+        return false;
+    }
+
+    init_core_state(initial);
+
+    /* convert the remaining free memory into UT objects and provide the caps */
+    if (!create_untypeds(
+                root_cnode_cap,
+                boot_mem_reuse_reg)) {
+        return false;
+    }
+
+    /* no shared-frame caps (RISCV has no multikernel support) */
+    ndks_boot.bi_frame->sharedFrames = S_REG_EMPTY;
+
+    /* finalise the bootinfo frame */
+    bi_finalise();
+
+    ksNumCPUs = 1;
+
+    printf("Booting all finished, dropped to user space\n");
+    return true;
+}
+
 BOOT_CODE VISIBLE void
 init_kernel(
     paddr_t ui_p_reg_start,
@@ -425,6 +590,7 @@ init_kernel(
 {
     pptr_t dtb_output = (pptr_t)paddr_to_pptr(dtb_output_p);
 
+#ifdef CONFIG_MMULESS
     bool_t result = try_init_kernel(ui_p_reg_start,
                                     ui_p_reg_end,
                                     dtb_output_p,
@@ -433,6 +599,16 @@ init_kernel(
                                     v_entry
                                    );
 
+#else
+    bool_t result = try_init_kernel_mmuless(ui_p_reg_start,
+                                            ui_p_reg_end,
+                                            dtb_output_p,
+                                            dtb_output_p + fdt_size((void*)dtb_output),
+                                            pv_offset,
+                                            v_entry
+                                           );
+
+#endif
     if (!result) {
         fail ("Kernel init failed for some reason :(");
     }
