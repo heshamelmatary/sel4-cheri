@@ -20,6 +20,12 @@ config HAVE_ARCH_TIMER
     bool
     default y
 
+config MMULESS
+    bool "Run seL4 and User in Machine mode"
+    default n
+    help
+       Run seL4 and user in machine mode, enforcing isolation via CHERI
+
 config PT_LEVELS
     int "Number of page table levels"
     default 3
