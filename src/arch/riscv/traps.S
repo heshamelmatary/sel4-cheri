@@ -54,7 +54,7 @@ trap_entry:
 
   csrrw t0, sscratch, t0
 
-#ifdef CONFIG_ARCH_CHERI
+#ifdef CONFIG_ARCH_CHERII
   cspecialrw c3, c0, ddc
   csetoffset c3, c3, t0
   cincoffsetimmediate c3, c3, REGBYTES*36

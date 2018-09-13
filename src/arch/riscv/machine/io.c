@@ -266,6 +266,7 @@ void handle_exception(void)
         handleVMFaultEvent(cause);
         break;
     case RISCVInstructionIllegal:
+        halt();
         handleUserLevelFault(0, 0);
         break;
     case RISCVLoadAddressMisaligned:

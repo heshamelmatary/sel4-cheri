@@ -496,6 +496,8 @@ CFLAGS += -mfloat-abi=soft
 endif
 ifeq (${ARCH}, riscv)
 CFLAGS += -mcmodel=medany
+CFLAGS += -Wa,-march=rv64g_xcheri
+ASFLAGS += -march=rv64g_xcheri
 ifeq (${ARCH_CHERI}, y)
 CFLAGS += -Wa,-march=rv64g_xcheri
 ASFLAGS += -march=rv64g_xcheri

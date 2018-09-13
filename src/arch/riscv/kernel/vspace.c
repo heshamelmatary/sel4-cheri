@@ -147,6 +147,8 @@ BOOT_CODE static int map_kernel_region(pte_t *lvlnpt, int pt_level, word_t regio
     return free_pt_index + 1;
 }
 
+int last_free_pt_index = 0;
+
 BOOT_CODE VISIBLE void
 map_kernel_window(void)
 {
@@ -155,7 +157,7 @@ map_kernel_window(void)
     int next_free_index = map_kernel_region((pte_t *)&kernel_pageTables, 1, KERNEL_BASE - PPTR_BASE, PPTR_BASE, PADDR_BASE, 0);
     /* mapping of kernelBase (virtual address) to kernel's physBase  */
     /* Start with level 1 page table, and try to map a kernel region with the biggest possiple page size */
-    map_kernel_region((pte_t *)&kernel_pageTables, 1, UINTPTR_MAX - KERNEL_BASE, KERNEL_BASE, PADDR_LOAD, next_free_index);
+    last_free_pt_index = map_kernel_region((pte_t *)&kernel_pageTables, 1, UINTPTR_MAX - KERNEL_BASE, KERNEL_BASE, PADDR_LOAD, next_free_index);
 }
 
 BOOT_CODE void
@@ -901,6 +903,32 @@ decodeRISCVFrameInvocation(word_t label, unsigned int length,
         cap = cap_frame_cap_set_capFMappedASID(cap, asid);
         cap = cap_frame_cap_set_capFMappedAddress(cap,  vaddr);
 
+#if 1
+        /* Put a 4K capability in user's IPC */
+        uint64_t *ipcBuffer = (uint64_t *) & (((seL4_IPCBuffer *) lookupIPCBuffer(true, NODE_STATE(ksCurThread)))->msg[3]);
+        uint64_t temp_size = BIT(seL4_PageBits);
+        uint16_t readOnly_perms = ~0x0;
+
+        asm volatile(
+            "cspecialrw c3, c0, ddc\n"
+            "csetoffset c3, c3, %0\n"
+
+            "cspecialrw c4, c0, ddc\n"
+
+            "csetoffset c4, c4, %1\n"
+            "csetbounds c4, c4, %2\n"
+            "candperm   c4, c4, %3\n"
+
+            "sqcap  c4, c3\n"
+            :
+            : "r" (ipcBuffer),
+            "r" (vaddr),
+            "r" (temp_size),
+            "r" (readOnly_perms)
+            : "memory"
+        );
+#endif
+
         bool_t executable = !vm_attributes_get_riscvExecuteNever(attr);
         pte_t pte = makeUserPTE(frame_paddr, executable, vmRights);
         setThreadState(NODE_STATE(ksCurThread), ThreadState_Restart);
@@ -1219,6 +1247,7 @@ exception_t performPageInvocationMapPTE(cap_t cap, cte_t *ctSlot,
                                         pte_t pte, pte_t *base)
 {
     ctSlot->cap = cap;
+
     return updatePTE(pte, base);
 }
 

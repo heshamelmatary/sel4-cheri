@@ -181,6 +181,28 @@ cap_t Arch_createObject(object_t t, void *regionBase, int userSize, bool_t
             memzero(regionBase, BIT(seL4_PageBits));
         }
 
+#if 0
+        /* Put a 4K capability in user's IPC */
+        uint64_t *ipcBuffer = (uint64_t *) & (((seL4_IPCBuffer *) lookupIPCBuffer(true, NODE_STATE(ksCurThread)))->msg[3]);
+        uint64_t temp_size = BIT(seL4_PageBits);
+        asm volatile(
+            "cspecialrw c3, c0, ddc\n"
+            "csetoffset c3, c3, %0\n"
+
+            "cspecialrw c4, c0, ddc\n"
+
+            "csetoffset c4, c4, %1\n"
+            "csetbounds c4, c4, %2\n"
+
+            "sqcap  c4, c3\n"
+            :
+            : "r" (ipcBuffer),
+            "r" (pptr_to_paddr(regionBase)),
+            "r" (temp_size)
+            : "memory"
+        );
+#endif
+
         return cap_frame_cap_new(
                    asidInvalid,                    /* capFMappedASID       */
                    (word_t) regionBase,            /* capFBasePtr          */
