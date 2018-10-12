@@ -126,6 +126,7 @@ enum _cheri_register {
 
     /* End of GP CHERI registers, the following are additional kernel-saved state. */
     pcc,
+    ddc,
     expcause,
 
     n_chericontextRegisters
