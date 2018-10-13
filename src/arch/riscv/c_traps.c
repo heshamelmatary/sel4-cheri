@@ -117,8 +117,8 @@ void VISIBLE NORETURN restore_user_context(void)
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
         LOAD_CHERI "  c30, c3  \n"
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
-        LOAD_CHERI "  c31, c3  \n"
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
+
         : /* no output */
         :
         [CREGSIZE] "i" (sizeof(cheri_reg_t)),
@@ -176,9 +176,24 @@ void VISIBLE NORETURN restore_user_context(void)
 
         LOAD_S "  t1, (5*%[REGSIZE])(t0) \n"
         LOAD_S "  t0, (4*%[REGSIZE])(t0) \n"
+
+#ifdef CONFIG_ARCH_CHERI 
+        /* EPCC */
+        LOAD_CHERI "  c31, c3  \n"
+        "cspecialrw c0, c31, mepcc \n"
+        "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
+
+        /* DCC */
+        LOAD_CHERI "  c31, c3  \n"
+        "cspecialrw c0, c31, ddc \n"
+
+        "cincoffsetimmediate c3, c3,-2 * %[CREGSIZE]\n"
+        LOAD_CHERI "  c31, c3  \n"
+#endif 
         ERET
         : /* no output */
         : [REGSIZE] "i" (sizeof(word_t)),
+        [CREGSIZE] "i" (sizeof(cheri_reg_t)),
         [cur_thread] "r" (cur_thread_reg)
         : "memory"
     );

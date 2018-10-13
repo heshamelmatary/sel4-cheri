@@ -549,7 +549,7 @@ try_init_kernel_mmuless(
     }
 
 
-    v_entry = v_entry + pv_offset;
+    //v_entry = v_entry + pv_offset;
 
     /* create the initial thread */
     tcb_t *initial = create_initial_thread(
@@ -566,6 +566,33 @@ try_init_kernel_mmuless(
     }
 
     init_core_state(initial);
+    unsigned long long base = (unsigned long long) pv_offset;
+
+    // Write PCC and DCC
+
+    asm volatile("cspecialrw c1, c0, pcc\n" 
+            "csetoffset c1, c1, %1\n"
+            "csetbounds c1, c1, %2\n"
+
+            "cspecialrw c3, c0, ddc\n"
+            "csetoffset c3, c3, %0\n"
+
+            "cspecialrw c4, c0, ddc\n"
+            "csetoffset c4, c4, %3\n"
+
+            "cspecialrw c2, c0, ddc\n" 
+            "csetoffset c2, c2, %1\n"
+            "csetbounds c2, c2, %2\n"
+
+            "sqcap  c1, c3\n"
+            "sqcap  c2, c4\n"
+            :
+            : "r" (&(initial->tcbArch.tcbContext.cheri_registers[pcc])),
+              "r" (base),
+              "r" (ui_p_reg_end - ui_p_reg_start),
+              "r" (&(initial->tcbArch.tcbContext.cheri_registers[ddc]))
+            : "memory"
+    );
 
     /* convert the remaining free memory into UT objects and provide the caps */
     if (!create_untypeds(
