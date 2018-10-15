@@ -192,9 +192,19 @@ fastpath_restore(word_t badge, word_t msgInfo, tcb_t *cur_thread)
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
         LOAD_CHERI "  c30, c3  \n"
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
+
+        /* EPCC */
         LOAD_CHERI "  c31, c3  \n"
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
-        LOAD_CHERI "  c3, c3  \n"
+        "cspecialrw c0, c31, mepcc \n"
+
+        /* DCC */
+        LOAD_CHERI "  c31, c3  \n"
+        "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
+        "cspecialrw c0, c31, ddc \n"
+
+        "cincoffsetimmediate c3, c3, -2 * %[CREGSIZE]\n"
+        LOAD_CHERI "  c31, c3  \n"
         : /* no output */
         :
         [CREGSIZE] "i" (sizeof(cheri_reg_t)),
