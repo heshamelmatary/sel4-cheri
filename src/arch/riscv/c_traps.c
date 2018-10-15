@@ -193,7 +193,9 @@ void VISIBLE NORETURN restore_user_context(void)
         ERET
         : /* no output */
         : [REGSIZE] "i" (sizeof(word_t)),
+#ifdef CONFIG_ARCH_CHERI
         [CREGSIZE] "i" (sizeof(cheri_reg_t)),
+#endif
         [cur_thread] "r" (cur_thread_reg)
         : "memory"
     );
