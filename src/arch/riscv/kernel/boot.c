@@ -570,6 +570,7 @@ try_init_kernel_mmuless(
 
     // Write PCC and DCC
 
+#ifdef CONFIG_ARCH_CHERI
     asm volatile("cspecialrw c1, c0, pcc\n" 
             "csetoffset c1, c1, %1\n"
             "csetbounds c1, c1, %2\n"
@@ -600,6 +601,7 @@ try_init_kernel_mmuless(
                 boot_mem_reuse_reg)) {
         return false;
     }
+#endif
 
     /* no shared-frame caps (RISCV has no multikernel support) */
     ndks_boot.bi_frame->sharedFrames = S_REG_EMPTY;
