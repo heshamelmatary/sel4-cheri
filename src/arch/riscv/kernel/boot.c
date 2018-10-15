@@ -568,40 +568,54 @@ try_init_kernel_mmuless(
     init_core_state(initial);
     unsigned long long base = (unsigned long long) pv_offset;
 
-    // Write PCC and DCC
+    // Write PCC and DCC and MTCC
 
 #ifdef CONFIG_ARCH_CHERI
-    asm volatile("cspecialrw c1, c0, pcc\n" 
-            "csetoffset c1, c1, %1\n"
-            "csetbounds c1, c1, %2\n"
+    asm volatile("cspecialrw c1, c0, pcc\n"
+                 /* First save almighy pcc to mtcc so that the kernel has
+                 access to full address space */
+                 "cspecialrw c0, c1, mtcc\n"
 
-            "cspecialrw c3, c0, ddc\n"
-            "csetoffset c3, c3, %0\n"
+                 /* Mint PCC */
+                 "csetoffset c1, c1, %1\n"
+                 "csetbounds c1, c1, %2\n"
 
-            "cspecialrw c4, c0, ddc\n"
-            "csetoffset c4, c4, %3\n"
+                 /* Create arch->pcc address cap */
+                 "cspecialrw c3, c0, ddc\n"
+                 "csetoffset c3, c3, %0\n"
 
-            "cspecialrw c2, c0, ddc\n" 
-            "csetoffset c2, c2, %1\n"
-            "csetbounds c2, c2, %2\n"
+                 /* Create arch->ddc address cap */
+                 "cspecialrw c4, c0, ddc\n"
+                 "csetoffset c4, c4, %3\n"
 
-            "sqcap  c1, c3\n"
-            "sqcap  c2, c4\n"
-            :
-            : "r" (&(initial->tcbArch.tcbContext.cheri_registers[pcc])),
-              "r" (base),
-              "r" (ui_p_reg_end - ui_p_reg_start),
-              "r" (&(initial->tcbArch.tcbContext.cheri_registers[ddc]))
-            : "memory"
-    );
+                 "cspecialrw c2, c0, ddc\n"
+                 /* First save almighy pcc to mtcc so that the kernel has
+                 access to full address space */
 
+                 "cspecialrw c0, c2, mscratchc\n"
+
+                 /* Mint DDC */
+                 "csetoffset c2, c2, %1\n"
+                 "csetbounds c2, c2, %2\n"
+
+                 /* Store caps */
+                 "sqcap  c1, c3\n"
+                 "sqcap  c2, c4\n"
+                 :
+                 : "r" (&(initial->tcbArch.tcbContext.cheri_registers[pcc])),
+                 "r" (base),
+                 "r" (ui_p_reg_end - ui_p_reg_start),
+                 "r" (&(initial->tcbArch.tcbContext.cheri_registers[ddc]))
+                 : "memory"
+                );
+
+#endif
     /* convert the remaining free memory into UT objects and provide the caps */
     if (!create_untypeds(
                 root_cnode_cap,
                 boot_mem_reuse_reg)) {
         return false;
     }
-#endif
 
     /* no shared-frame caps (RISCV has no multikernel support) */
     ndks_boot.bi_frame->sharedFrames = S_REG_EMPTY;
