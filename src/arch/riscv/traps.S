@@ -184,7 +184,11 @@ trap_entry:
   beq  s2, s1, interrupt
 
   andi s0, s0, 0xf /* priv 1.10 defines up to 15 exceptions/interrupts */
+#if CONFIG_MMULESS
+  li   s4, 11      /* M-mode ecalls have value 11 */
+#else
   li   s4, 8       /* priv 1.10 has value 8 for ecall exception */
+#endif
   bne  s0, s4, exception
 
 syscall:
