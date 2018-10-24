@@ -439,6 +439,25 @@ try_init_kernel_mmuless(
     region_t dtb_reg = paddr_to_pptr_reg((p_region_t) {
         dtb_p_reg_start, dtb_p_reg_end
     });
+    pptr_t bi_frame_pptr;
+    vptr_t bi_frame_vptr;
+    vptr_t ipcbuf_vptr;
+    create_frames_of_region_ret_t create_frames_ret;
+
+    /* convert from physical addresses to userland vptrs */
+    v_region_t ui_v_reg;
+    v_region_t it_v_reg;
+    ui_v_reg.start = (uint32_t) (ui_p_reg_start - pv_offset);
+    ui_v_reg.end   = (uint32_t) (ui_p_reg_end   - pv_offset);
+
+    ipcbuf_vptr = ui_v_reg.end;
+    bi_frame_vptr = ipcbuf_vptr + BIT(PAGE_BITS);
+
+    /* The region of the initial thread is the user image + ipcbuf and boot info */
+    it_v_reg.start = ui_v_reg.start;
+    it_v_reg.end = bi_frame_vptr + BIT(PAGE_BITS);
+
+#if 0
 
     paddr_t bi_frame_ptr;
     paddr_t ipcbuf_ptr;
@@ -446,11 +465,11 @@ try_init_kernel_mmuless(
 
     /* convert from physical addresses to userland vptrs */
     //v_region_t ui_v_reg;
-    //ui_v_reg.start = (uint32_t) (ui_p_reg_start - pv_offset);
-    //ui_v_reg.end   = (uint32_t) (ui_p_reg_end   - pv_offset);
+    ui_v_reg.start = (uint32_t) (ui_p_reg_start - pv_offset);
+    ui_v_reg.end   = (uint32_t) (ui_p_reg_end   - pv_offset);
 
-    //ipcbuf_vptr = ui_v_reg.end;
-    //bi_frame_vptr = ipcbuf_vptr + BIT(PAGE_BITS);
+    ipcbuf_vptr = ui_v_reg.end;
+    bi_frame_vptr = ipcbuf_vptr + BIT(PAGE_BITS);
 
     region_t ui_p_reg;
     region_t it_p_reg;
@@ -464,6 +483,7 @@ try_init_kernel_mmuless(
     /* The region of the initial thread is the user image + ipcbuf and boot info */
     it_p_reg.start = ui_p_reg.start;
     it_p_reg.end = bi_frame_ptr + BIT(PAGE_BITS);
+#endif
 
     /* initialise the CPU */
     init_cpu();
@@ -492,8 +512,8 @@ try_init_kernel_mmuless(
     init_irqs(root_cnode_cap);
 
     /* create the bootinfo frame */
-    bi_frame_ptr = allocate_bi_frame(0, CONFIG_MAX_NUM_NODES, ipcbuf_ptr);
-    if (!bi_frame_ptr) {
+    bi_frame_pptr = allocate_bi_frame(0, CONFIG_MAX_NUM_NODES, ipcbuf_vptr);
+    if (!bi_frame_pptr) {
         return false;
     }
 
@@ -510,12 +530,12 @@ try_init_kernel_mmuless(
     create_bi_frame_cap(
         root_cnode_cap,
         it_pd_cap,
-        bi_frame_ptr,
-        bi_frame_ptr
+        bi_frame_pptr,
+        bi_frame_vptr
     );
 
     /* create the initial thread's IPC buffer */
-    ipcbuf_cap = create_ipcbuf_frame(root_cnode_cap, it_pd_cap, ipcbuf_ptr);
+    ipcbuf_cap = create_ipcbuf_frame(root_cnode_cap, it_pd_cap, ipcbuf_vptr);
     if (cap_get_capType(ipcbuf_cap) == cap_null_cap) {
         return false;
     }
@@ -556,10 +576,12 @@ try_init_kernel_mmuless(
                          root_cnode_cap,
                          it_pd_cap,
                          v_entry,
-                         bi_frame_ptr,
-                         ipcbuf_ptr,
+                         bi_frame_vptr,
+                         ipcbuf_vptr,
                          ipcbuf_cap
                      );
+
+    printf("bi_frame_vptr, = %p\n", (void *) bi_frame_vptr);
 
     if (initial == NULL) {
         return false;
@@ -604,7 +626,7 @@ try_init_kernel_mmuless(
                  :
                  : "r" (&(initial->tcbArch.tcbContext.cheri_registers[pcc])),
                  "r" (base),
-                 "r" (ui_p_reg_end - ui_p_reg_start),
+                 "r" (ui_v_reg.end - ui_v_reg.start),
                  "r" (&(initial->tcbArch.tcbContext.cheri_registers[ddc]))
                  : "memory"
                 );

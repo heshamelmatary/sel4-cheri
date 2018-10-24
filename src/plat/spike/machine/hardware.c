@@ -185,7 +185,7 @@ resetTimer(void)
 BOOT_CODE void
 initTimer(void)
 {
-    sbi_set_timer(read_current_timer() + 0xfffff);
+    //sbi_set_timer(read_current_timer() + 0xfffff);
 }
 
 void plat_cleanL2Range(paddr_t start, paddr_t end)
