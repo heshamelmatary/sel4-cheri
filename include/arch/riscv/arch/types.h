@@ -68,12 +68,12 @@ struct cheri_reg {
     uint32_t perms  : 11;
     uint32_t sealed : 1;
 
-        uint32_t otype    : 24;
-        uint32_t reserved : 7;
-        uint32_t tag      : 1;
-    };
+    uint32_t otype    : 24;
+    uint32_t reserved : 7;
+    uint32_t tag      : 1;
+};
 
-    struct sel4_cap {
+struct sel4_cap {
     seL4_Word words[4];
 };
 #endif

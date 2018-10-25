@@ -415,6 +415,43 @@ try_init_kernel(
     return true;
 }
 
+
+void
+init_bi_frame_mmuless(
+    pptr_t   pptr,
+    node_id_t  node_id,
+    word_t   num_nodes,
+    vptr_t   ipcbuf_vptr
+);
+
+BOOT_CODE void
+init_bi_frame_mmuless(
+    pptr_t   pptr,
+    node_id_t  node_id,
+    word_t   num_nodes,
+    vptr_t   ipcbuf_vptr
+)
+{
+    if (!pptr) {
+        printf("Kernel init failed: could not allocate bootinfo frame\n");
+    }
+    clearMemory((void*)pptr, BI_FRAME_SIZE_BITS);
+
+    /* initialise bootinfo-related global state */
+    ndks_boot.bi_frame = BI_PTR(pptr);
+    ndks_boot.slot_pos_cur = seL4_NumInitialCaps;
+
+    BI_PTR(pptr)->nodeID = node_id;
+    BI_PTR(pptr)->numNodes = num_nodes;
+    BI_PTR(pptr)->numIOPTLevels = 0;
+    BI_PTR(pptr)->ipcBuffer = (seL4_IPCBuffer *) ipcbuf_vptr;
+    BI_PTR(pptr)->initThreadCNodeSizeBits = CONFIG_ROOT_CNODE_SIZE_BITS;
+    BI_PTR(pptr)->initThreadDomain = ksDomSchedule[ksDomScheduleIdx].domain;
+    BI_PTR(pptr)->extraLen = 0;
+    BI_PTR(pptr)->extraBIPages.start = 0;
+    BI_PTR(pptr)->extraBIPages.end = 0;
+}
+
 static BOOT_CODE bool_t
 try_init_kernel_mmuless(
     paddr_t ui_p_reg_start,
@@ -433,9 +470,6 @@ try_init_kernel_mmuless(
         kpptr_to_paddr((void*)KERNEL_BASE), kpptr_to_paddr(ki_boot_end)
     });
     region_t boot_mem_reuse_reg = paddr_to_pptr_reg(boot_mem_reuse_p_reg);
-    region_t ui_reg = paddr_to_pptr_reg((p_region_t) {
-        ui_p_reg_start, ui_p_reg_end
-    });
     region_t dtb_reg = paddr_to_pptr_reg((p_region_t) {
         dtb_p_reg_start, dtb_p_reg_end
     });
@@ -443,6 +477,11 @@ try_init_kernel_mmuless(
     vptr_t bi_frame_vptr;
     vptr_t ipcbuf_vptr;
     create_frames_of_region_ret_t create_frames_ret;
+
+    /* Add two pages to physical address for IPC and bootinfo */
+    region_t ui_reg = paddr_to_pptr_reg((p_region_t) {
+        ui_p_reg_start, ui_p_reg_end + 2 * BIT(PAGE_BITS)
+    });
 
     /* convert from physical addresses to userland vptrs */
     v_region_t ui_v_reg;
@@ -452,6 +491,7 @@ try_init_kernel_mmuless(
 
     ipcbuf_vptr = ui_v_reg.end;
     bi_frame_vptr = ipcbuf_vptr + BIT(PAGE_BITS);
+    bi_frame_pptr = ui_p_reg_end + BIT(PAGE_BITS);
 
     /* The region of the initial thread is the user image + ipcbuf and boot info */
     it_v_reg.start = ui_v_reg.start;
@@ -512,7 +552,7 @@ try_init_kernel_mmuless(
     init_irqs(root_cnode_cap);
 
     /* create the bootinfo frame */
-    bi_frame_pptr = allocate_bi_frame(0, CONFIG_MAX_NUM_NODES, ipcbuf_vptr);
+    init_bi_frame_mmuless(bi_frame_pptr, 0, CONFIG_MAX_NUM_NODES, ipcbuf_vptr);
     if (!bi_frame_pptr) {
         return false;
     }
