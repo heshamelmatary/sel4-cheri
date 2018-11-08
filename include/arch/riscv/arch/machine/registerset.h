@@ -97,7 +97,6 @@ enum _register {
 
 #if defined(CONFIG_ARCH_CHERI) && !defined(CONFIG_CHERI_MERGED_RF)
 enum _cheri_register {
-    c0,
     c1,
     c2,
     c3,
@@ -171,7 +170,6 @@ static inline void Arch_initContext(user_context_t* context)
 {
     /* Enable interrupts (when going to user-mode) */
 #ifdef CONFIG_CHERI_MERGED_RF
-    printf("statis = %p\n", &context->registers[STATUS]);
     context->registers[STATUS] = (cheri_reg_t) {config_set(CONFIG_SEL4_RV_MACHINE) ? MSTATUS_MPIE : SSTATUS_SPIE, 0};
 #else
     context->registers[STATUS] = config_set(CONFIG_SEL4_RV_MACHINE) ? MSTATUS_MPIE : SSTATUS_SPIE;

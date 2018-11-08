@@ -160,8 +160,8 @@ void VISIBLE NORETURN restore_user_context(void)
 #endif
 
     asm volatile(
-#ifndef CONFIG_CHERI_MERGED_RF
         "mv t0, %[cur_thread]       \n"
+#ifndef CONFIG_CHERI_MERGED_RF
         LOAD_S " ra, (0*%[REGSIZE])(t0)  \n"
         LOAD_S "  sp, (1*%[REGSIZE])(t0)  \n"
         LOAD_S "  gp, (2*%[REGSIZE])(t0)  \n"
@@ -214,9 +214,9 @@ void VISIBLE NORETURN restore_user_context(void)
         /* EPCC */
         LOAD_CHERI "  c31, c3  \n"
         "cspecialrw c0, c31, mepcc \n"
-        "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
 
         /* DCC */
+        "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
         LOAD_CHERI "  c31, c3  \n"
         "cspecialrw c0, c31, ddc \n"
 
