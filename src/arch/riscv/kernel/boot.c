@@ -633,36 +633,36 @@ try_init_kernel_mmuless(
     // Write PCC and DCC and MTCC
 
 #ifdef CONFIG_ARCH_CHERI
-    asm volatile("cspecialrw c1, c0, pcc\n"
+    asm volatile("cspecialrw c21, c0, pcc\n"
                  /* First save almighy pcc to mtcc so that the kernel has
                  access to full address space */
-                 "cspecialrw c0, c1, mtcc\n"
+                 "cspecialrw c0, c21, mtcc\n"
 
                  /* Mint PCC */
-                 "csetoffset c1, c1, %1\n"
-                 "csetbounds c1, c1, %2\n"
+                 "csetoffset c21, c21, %1\n"
+                 "csetbounds c21, c21, %2\n"
 
                  /* Create arch->pcc address cap */
-                 "cspecialrw c3, c0, ddc\n"
-                 "csetoffset c3, c3, %0\n"
+                 "cspecialrw c23, c0, ddc\n"
+                 "csetoffset c23, c23, %0\n"
 
                  /* Create arch->ddc address cap */
-                 "cspecialrw c4, c0, ddc\n"
-                 "csetoffset c4, c4, %3\n"
+                 "cspecialrw c24, c0, ddc\n"
+                 "csetoffset c24, c24, %3\n"
 
-                 "cspecialrw c2, c0, ddc\n"
+                 "cspecialrw c22, c0, ddc\n"
                  /* First save almighy pcc to mtcc so that the kernel has
                  access to full address space */
 
-                 "cspecialrw c0, c2, mscratchc\n"
+                 "cspecialrw c0, c22, mscratchc\n"
 
                  /* Mint DDC */
-                 "csetoffset c2, c2, %1\n"
-                 "csetbounds c2, c2, %2\n"
+                 "csetoffset c22, c22, %1\n"
+                 "csetbounds c22, c22, %2\n"
 
                  /* Store caps */
-                 "sqcap  c1, c3\n"
-                 "sqcap  c2, c4\n"
+                 "sqcap  c21, c23\n"
+                 "sqcap  c22, c24\n"
                  :
                  : "r" (&(initial->tcbArch.tcbContext.cheri_registers[pcc])),
                  "r" (base),
