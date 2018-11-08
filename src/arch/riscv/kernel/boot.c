@@ -634,7 +634,7 @@ try_init_kernel_mmuless(
 
 #ifdef CONFIG_ARCH_CHERI
     asm volatile("cspecialrw c21, c0, pcc\n"
-                 /* First save almighy pcc to mtcc so that the kernel has
+                 /* First save almighty pcc to mtcc so that the kernel has
                  access to full address space */
                  "cspecialrw c0, c21, mtcc\n"
 
@@ -664,10 +664,18 @@ try_init_kernel_mmuless(
                  "sqcap  c21, c23\n"
                  "sqcap  c22, c24\n"
                  :
+#ifdef CONFIG_CHERI_MERGED_RF
+                 : "r" (&(initial->tcbArch.tcbContext.registers[pcc])),
+#else
                  : "r" (&(initial->tcbArch.tcbContext.cheri_registers[pcc])),
+#endif
                  "r" (base),
                  "r" (ui_v_reg.end - ui_v_reg.start),
+#ifdef CONFIG_CHERI_MERGED_RF
+                 "r" (&(initial->tcbArch.tcbContext.registers[ddc]))
+#else
                  "r" (&(initial->tcbArch.tcbContext.cheri_registers[ddc]))
+#endif
                  : "memory"
                 );
 

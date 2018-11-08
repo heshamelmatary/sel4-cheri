@@ -41,33 +41,35 @@
 /** DONT_TRANSLATE */
 void VISIBLE NORETURN restore_user_context(void)
 {
-    word_t cur_thread_reg = (word_t) NODE_STATE(ksCurThread)->tcbArch.tcbContext.registers;
+    word_t register cur_thread_reg = (word_t) NODE_STATE(ksCurThread)->tcbArch.tcbContext.registers;
 
     c_exit_hook();
 
     NODE_UNLOCK_IF_HELD;
 
 #ifdef CONFIG_ARCH_CHERI
+#ifdef CONFIG_CHERI_MERGED_RF
+    UNUSED register word_t cur_cheri_reg asm("t1") = cur_thread_reg;
+#else
     UNUSED register word_t cur_cheri_reg asm("t1") = (word_t) NODE_STATE(ksCurThread)->tcbArch.tcbContext.cheri_registers;
+#endif
 #endif
 
 #ifdef CONFIG_ARCH_CHERI
     asm volatile(
         "cspecialrw c3, c0, ddc \n"
         "csetoffset c3, c3, t1  \n"
-        LOAD_CHERI "  c0, c3  \n"
-        "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
-        LOAD_CHERI "  c0, c3  \n"
-        "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
         LOAD_CHERI "  c1, c3  \n"
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
         /*LOAD_CHERI "  c2, c3  \n"*/
+        "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
+        /*LOAD_CHERI "  c3, c3  \n"*/
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
         /*LOAD_CHERI "  c4, c3  \n"*/
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
         /*LOAD_CHERI "  c5, c3  \n"*/
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
-        LOAD_CHERI "  c6, c3  \n"
+        /* LOAD_CHERI "  c6, c3  \n" */ // t1
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
         LOAD_CHERI "  c7, c3  \n"
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
@@ -117,18 +119,49 @@ void VISIBLE NORETURN restore_user_context(void)
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
         LOAD_CHERI "  c30, c3  \n"
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
+        /* Step over c31, it will be loaded later */
         "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
 
+#ifdef CONFIG_CHERI_MERGED_RF
+
+        /* get eepc */
+        LOAD_S "  t0, (37*%[CREGSIZE])(t1)\n"
+        "csrw " EEPC ", t0  \n"
+
+        /* Write back sscratch with cur_thread_reg to get it back on the next trap entry */
+        //"csrw sscratch, t1         \n"
+
+        LOAD_S "  t0, (35*%[CREGSIZE])(t1) \n"
+        "csrw " ESTATUS ", t0\n"
+
+        /* EPCC */
+        LOAD_CHERI "  c31, c3  \n"
+        "cspecialrw c0, c31, mepcc \n"
+
+        /* DCC */
+        "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
+        LOAD_CHERI "  c31, c3  \n"
+        "cspecialrw c0, c31, ddc \n"
+
+        "cincoffsetimmediate c3, c3,-2 * %[CREGSIZE]\n"
+        LOAD_CHERI "  c31, c3  \n"
+
+        //LOAD_S "  t1, (5*%[REGSIZE])(t0) \n"
+        //LOAD_S "  t0, (4*%[REGSIZE])(t0) \n"
+        ERET
+#endif
         : /* no output */
         :
         [CREGSIZE] "i" (sizeof(cheri_reg_t)),
+        [REGSIZE] "i" (sizeof(word_t)),
         [cur_cheri] "r" (cur_cheri_reg)
+        :
     );
 #endif
 
     asm volatile(
-        "mv t0, %[cur_thread]       \n"
 #ifndef CONFIG_CHERI_MERGED_RF
+        "mv t0, %[cur_thread]       \n"
         LOAD_S " ra, (0*%[REGSIZE])(t0)  \n"
         LOAD_S "  sp, (1*%[REGSIZE])(t0)  \n"
         LOAD_S "  gp, (2*%[REGSIZE])(t0)  \n"

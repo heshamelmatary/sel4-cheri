@@ -119,7 +119,11 @@ fastpath_restore(word_t badge, word_t msgInfo, tcb_t *cur_thread)
     register word_t cur_thread_reg asm("t0") = TCB_REF(cur_thread);
 
 #ifdef CONFIG_ARCH_CHERI
-    UNUSED register word_t cur_cheri_reg asm("t1") = (word_t) cur_thread->tcbArch.tcbContext.cheri_registers;
+#ifdef CONFIG_CHERI_MERGED_RF
+    UNUSED register word_t cur_cheri_reg asm("t1") = cur_thread_reg;
+#else
+    UNUSED register word_t cur_cheri_reg asm("t1") = (word_t) NODE_STATE(ksCurThread)->tcbArch.tcbContext.cheri_registers;
+#endif
 #endif
 
     c_exit_hook();

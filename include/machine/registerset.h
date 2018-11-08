@@ -27,13 +27,21 @@ extern const register_t fault_messages[][MAX_MSG_SIZE] VISIBLE;
 static inline void
 setRegister(tcb_t *thread, register_t reg, word_t w)
 {
+#ifdef CONFIG_CHERI_MERGED_RF
+    thread->tcbArch.tcbContext.registers[reg].pesbt = w;
+#else
     thread->tcbArch.tcbContext.registers[reg] = w;
+#endif
 }
 
 static inline word_t PURE
 getRegister(tcb_t *thread, register_t reg)
 {
+#ifdef CONFIG_CHERI_MERGED_RF
+    return thread->tcbArch.tcbContext.registers[reg].pesbt;
+#else
     return thread->tcbArch.tcbContext.registers[reg];
+#endif
 }
 
 #endif

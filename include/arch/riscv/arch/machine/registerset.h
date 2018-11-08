@@ -78,6 +78,12 @@ enum _register {
     t5 = 29,
     t6 = 30,
 
+#ifdef CONFIG_CHERI_MERGED_RF
+    pcc,
+    ddc,
+    expcause,
+#endif
+
     /* End of GP registers, the following are additional kernel-saved state. */
     CAUSE,
     STATUS,
@@ -89,7 +95,7 @@ enum _register {
     n_contextRegisters
 };
 
-#ifdef CONFIG_ARCH_CHERI
+#if defined(CONFIG_ARCH_CHERI) && !defined(CONFIG_CHERI_MERGED_RF)
 enum _cheri_register {
     c0,
     c1,
@@ -150,8 +156,12 @@ extern const register_t exceptionMessage[] VISIBLE;
 extern const register_t syscallMessage[] VISIBLE;
 
 struct user_context {
+#ifdef CONFIG_CHERI_MERGED_RF
+    cheri_reg_t registers[n_contextRegisters];
+#else
     word_t registers[n_contextRegisters];
-#ifdef CONFIG_ARCH_CHERI
+#endif
+#if defined(CONFIG_ARCH_CHERI) && !defined(CONFIG_CHERI_MERGED_RF)
     cheri_reg_t cheri_registers[n_chericontextRegisters] ALIGN(sizeof(cheri_reg_t));
 #endif /* CONFIG_ARCH_CHERI */
 };
@@ -160,11 +170,20 @@ typedef struct user_context user_context_t;
 static inline void Arch_initContext(user_context_t* context)
 {
     /* Enable interrupts (when going to user-mode) */
+#ifdef CONFIG_CHERI_MERGED_RF
+    printf("statis = %p\n", &context->registers[STATUS]);
+    context->registers[STATUS] = (cheri_reg_t) {config_set(CONFIG_SEL4_RV_MACHINE) ? MSTATUS_MPIE : SSTATUS_SPIE, 0};
+#else
     context->registers[STATUS] = config_set(CONFIG_SEL4_RV_MACHINE) ? MSTATUS_MPIE : SSTATUS_SPIE;
+#endif
 
     if (config_set(CONFIG_MMULESS)) {
         /* User executes is in Machine mode */
+#ifdef CONFIG_CHERI_MERGED_RF
+        context->registers[STATUS].pesbt |= MSTATUS_MPP;
+#else
         context->registers[STATUS] |= MSTATUS_MPP;
+#endif
     }
 }
 
