@@ -61,8 +61,6 @@ trap_entry:
   csetoffset c3, c3, t0
   cincoffsetimmediate c3, c3, REGBYTES*36
 
-  SC   c0, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
   SC   c1, c3
   cincoffsetimmediate c3, c3, CREGSIZE
   SC   c2, c3
