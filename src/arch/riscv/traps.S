@@ -55,8 +55,7 @@ trap_entry:
   csrrw t0, sscratch, t0
 
 #ifdef CONFIG_ARCH_CHERI
-  cspecialrw c31, c0, mscratchc
-  cspecialrw c0, c31, ddc
+  cspecialrw c31, c31, mscratchc
 
   csetoffset c31, c31, t0
 #ifndef CONFIG_CHERI_MERGED_RF
@@ -124,6 +123,14 @@ trap_entry:
   SC   c30, c31
   cincoffsetimmediate c31, c31, CREGSIZE
   SC   c31, c31
+
+  cincoffsetimmediate c31, c31, CREGSIZE
+  cspecialrw c30, c0, mepcc
+  SC   c30, c31
+
+  cincoffsetimmediate c31, c31, CREGSIZE
+  csetoffset c31, c31, x0
+  cspecialrw c0, c31, ddc
 #endif
 
 #ifndef CONFIG_CHERI_MERGED_RF

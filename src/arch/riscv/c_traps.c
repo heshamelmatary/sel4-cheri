@@ -149,6 +149,7 @@ void VISIBLE NORETURN restore_user_context(void)
         LOAD_CHERI "  c30, c31  \n"
         "cspecialrw c31, c30, ddc\n"
 
+        "csetoffset c31, c31, t1  \n"
         "cspecialrw c31, c31, mscratchc\n"
 
         //LOAD_S "  t1, (5*%[REGSIZE])(t0) \n"
