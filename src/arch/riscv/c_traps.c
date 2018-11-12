@@ -214,20 +214,25 @@ void VISIBLE NORETURN restore_user_context(void)
         "csrw " ESTATUS ", t1\n"
 
         LOAD_S "  t1, (5*%[REGSIZE])(t0) \n"
-        LOAD_S "  t0, (4*%[REGSIZE])(t0) \n"
 
 #ifdef CONFIG_ARCH_CHERI
+
         /* EPCC */
-        LOAD_CHERI "  c31, c3  \n"
-        "cspecialrw c0, c31, mepcc \n"
+        LOAD_CHERI "  c30, c31  \n"
+        "cspecialrw c0, c30, mepcc \n"
 
-        /* DCC */
-        "cincoffsetimmediate c3, c3, %[CREGSIZE]\n"
-        LOAD_CHERI "  c31, c3  \n"
-        "cspecialrw c0, c31, ddc \n"
+        /* DDC */
+        "cincoffsetimmediate c31, c31,  %[CREGSIZE]\n"
+        LOAD_CHERI "  c30, c31  \n"
 
-        "cincoffsetimmediate c3, c3,-2 * %[CREGSIZE]\n"
-        LOAD_CHERI "  c31, c3  \n"
+        "csetoffset c31, c31, t0  \n"
+        LOAD_S "  t0, (4*%[REGSIZE])(t0) \n"
+
+        "cspecialrw c0, c30, ddc\n"
+
+        "cspecialrw c31, c31, mscratchc\n"
+#else
+        LOAD_S "  t0, (4*%[REGSIZE])(t0) \n"
 #endif
         ERET
         : /* no output */
