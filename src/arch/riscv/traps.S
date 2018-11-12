@@ -55,73 +55,75 @@ trap_entry:
   csrrw t0, sscratch, t0
 
 #ifdef CONFIG_ARCH_CHERI
-  cspecialrw c3, c0, mscratchc
-  cspecialrw c0, c3, ddc
+  cspecialrw c31, c0, mscratchc
+  cspecialrw c0, c31, ddc
 
-  csetoffset c3, c3, t0
-  cincoffsetimmediate c3, c3, REGBYTES*36
+  csetoffset c31, c31, t0
+#ifndef CONFIG_CHERI_MERGED_RF
+  cincoffsetimmediate c31, c31, REGBYTES*36
+#endif
 
-  SC   c1, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c2, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c3, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c4, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c5, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c6, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c7, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c8, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c9, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c10, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c11, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c12, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c13, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c14, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c15, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c16, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c17, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c18, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c19, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c20, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c21, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c22, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c23, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c24, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c25, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c26, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c27, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c28, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c29, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c30, c3
-  cincoffsetimmediate c3, c3, CREGSIZE
-  SC   c31, c3
+  SC   c1, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c2, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c3, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c4, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c5, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c6, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c7, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c8, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c9, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c10, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c11, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c12, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c13, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c14, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c15, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c16, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c17, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c18, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c19, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c20, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c21, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c22, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c23, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c24, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c25, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c26, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c27, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c28, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c29, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c30, c31
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c31, c31
 #endif
 
 #ifndef CONFIG_CHERI_MERGED_RF
@@ -155,7 +157,6 @@ trap_entry:
   STORE t4, (28*REGBYTES)(t0)
   STORE t5, (29*REGBYTES)(t0)
   STORE t6, (30*REGBYTES)(t0)
-#endif
 
   /* save t0 value */
   csrr  x1, sscratch
@@ -170,6 +171,28 @@ trap_entry:
   /* Save exception PC */
   csrr x1, EPC_REG
   STORE   x1, (33*REGBYTES)(t0)
+#else
+  /* save t0 value */
+  csrr  x1, sscratch
+  STORE    x1, (4*CREGSIZE)(t0)
+
+  csrr x1, STATUS_REG
+  STORE x1, (35*CREGSIZE)(t0)
+
+  csrr s0, CAUSE_REG
+  STORE s0, (34*CREGSIZE)(t0)
+
+  /* Save exception PC */
+  csrr x1, EPC_REG
+  STORE   x1, (36*CREGSIZE)(t0)
+
+  /* cspecialrw c31, c0, mscratchc
+
+  cincoffsetimmediate c31, c31, CREGSIZE
+  cincoffsetimmediate c31, c31, CREGSIZE
+  SC   c31, c31
+  */
+#endif
 
   la gp, __global_pointer$
 
@@ -193,17 +216,29 @@ syscall:
   /* Set the return address to sepc + 4 in the case of a system/environment call */
   addi x1, x1, 4
   /* Save NEXTPC */
+#ifdef CONFIG_CHERI_MERGED_RF
+  STORE   x1, (37*CREGSIZE)(t0)
+#else
   STORE   x1, (34*REGBYTES)(t0)
+#endif
 
   j c_handle_syscall
 
 /* Not an interrupt or a syscall */
 exception:
   /* Save NEXTPC */
+#ifdef CONFIG_CHERI_MERGED_RF
+  STORE   x1, (37*CREGSIZE)(t0)
+#else
   STORE   x1, (34*REGBYTES)(t0)
+#endif
   j c_handle_exception
 
 interrupt:
   /* Save NEXTPC */
+#ifdef CONFIG_CHERI_MERGED_RF
+  STORE   x1, (37*CREGSIZE)(t0)
+#else
   STORE   x1, (34*REGBYTES)(t0)
+#endif
   j c_handle_interrupt

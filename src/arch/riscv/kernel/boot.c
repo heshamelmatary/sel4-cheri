@@ -651,9 +651,6 @@ try_init_kernel_mmuless(
                  "csetoffset c24, c24, %3\n"
 
                  "cspecialrw c22, c0, ddc\n"
-                 /* First save almighy pcc to mtcc so that the kernel has
-                 access to full address space */
-
                  "cspecialrw c0, c22, mscratchc\n"
 
                  /* Mint DDC */
@@ -694,7 +691,7 @@ try_init_kernel_mmuless(
     bi_finalise();
 
     ksNumCPUs = 1;
-    printf("Booting all finished, dropped to user space\n");
+    //printf("Booting all finished, dropped to user space\n");
     return true;
 }
 
