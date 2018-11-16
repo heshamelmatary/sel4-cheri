@@ -297,6 +297,8 @@ try_init_kernel(
     /* make the free memory available to alloc_region() */
     init_freemem(ui_reg, dtb_reg);
 
+    printf("pv_offset = %x\n", pv_offset);
+
     /* create the root cnode */
     root_cnode_cap = create_root_cnode();
     if (cap_get_capType(root_cnode_cap) == cap_null_cap) {

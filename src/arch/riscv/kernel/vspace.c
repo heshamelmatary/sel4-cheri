@@ -903,7 +903,7 @@ decodeRISCVFrameInvocation(word_t label, unsigned int length,
         cap = cap_frame_cap_set_capFMappedASID(cap, asid);
         cap = cap_frame_cap_set_capFMappedAddress(cap,  vaddr);
 
-#if 1
+#ifdef CONFIG_ARCH_CHERI
         /* Put a 4K capability in user's IPC */
         uint64_t *ipcBuffer = (uint64_t *) & (((seL4_IPCBuffer *) lookupIPCBuffer(true, NODE_STATE(ksCurThread)))->msg[3]);
         uint64_t temp_size = BIT(seL4_PageBits);
