@@ -454,6 +454,27 @@ init_bi_frame_mmuless(
     BI_PTR(pptr)->extraBIPages.end = 0;
 }
 
+cap_t
+create_ipcbuf_frame_mmuless(cap_t root_cnode_cap, cap_t pd_cap, pptr_t pptr, vptr_t vptr);
+
+BOOT_CODE cap_t
+create_ipcbuf_frame_mmuless(cap_t root_cnode_cap, cap_t pd_cap, pptr_t pptr, vptr_t vptr)
+{
+    cap_t cap;
+
+    if (!pptr) {
+        printf("Kernel init failing: could not create ipc buffer frame\n");
+        return cap_null_cap_new();
+    }
+    clearMemory((void*)pptr, PAGE_BITS);
+
+    /* create a cap of it and write it into the root CNode */
+    cap = create_mapped_it_frame_cap(pd_cap, pptr, vptr, IT_ASID, false, false);
+    write_slot(SLOT_PTR(pptr_of_cap(root_cnode_cap), seL4_CapInitThreadIPCBuffer), cap);
+
+    return cap;
+}
+
 static BOOT_CODE bool_t
 try_init_kernel_mmuless(
     paddr_t ui_p_reg_start,
@@ -478,6 +499,7 @@ try_init_kernel_mmuless(
     pptr_t bi_frame_pptr;
     vptr_t bi_frame_vptr;
     vptr_t ipcbuf_vptr;
+    pptr_t ipcbuf_pptr;
     create_frames_of_region_ret_t create_frames_ret;
 
     /* Add two pages to physical address for IPC and bootinfo */
@@ -493,6 +515,7 @@ try_init_kernel_mmuless(
 
     ipcbuf_vptr = ui_v_reg.end;
     bi_frame_vptr = ipcbuf_vptr + BIT(PAGE_BITS);
+    ipcbuf_pptr = ui_p_reg_end;
     bi_frame_pptr = ui_p_reg_end + BIT(PAGE_BITS);
 
     /* The region of the initial thread is the user image + ipcbuf and boot info */
@@ -577,7 +600,8 @@ try_init_kernel_mmuless(
     );
 
     /* create the initial thread's IPC buffer */
-    ipcbuf_cap = create_ipcbuf_frame(root_cnode_cap, it_pd_cap, ipcbuf_vptr);
+    //ipcbuf_cap = create_ipcbuf_frame(root_cnode_cap, it_pd_cap, ipcbuf_vptr);
+    ipcbuf_cap = create_ipcbuf_frame_mmuless(root_cnode_cap, it_pd_cap, ipcbuf_pptr,  ipcbuf_vptr);
     if (cap_get_capType(ipcbuf_cap) == cap_null_cap) {
         return false;
     }
