@@ -268,6 +268,8 @@ try_init_kernel(
     });
     pptr_t bi_frame_pptr;
     vptr_t bi_frame_vptr;
+    pptr_t cap_frame_pptr;
+    vptr_t cap_frame_vptr;
     vptr_t ipcbuf_vptr;
     create_frames_of_region_ret_t create_frames_ret;
 
@@ -279,6 +281,7 @@ try_init_kernel(
 
     ipcbuf_vptr = ui_v_reg.end;
     bi_frame_vptr = ipcbuf_vptr + BIT(PAGE_BITS);
+    cap_frame_vptr = bi_frame_vptr + BIT(PAGE_BITS);
 
     /* The region of the initial thread is the user image + ipcbuf and boot info */
     it_v_reg.start = ui_v_reg.start;
@@ -298,6 +301,8 @@ try_init_kernel(
     init_freemem(ui_reg, dtb_reg);
 
     printf("pv_offset = %x\n", pv_offset);
+    //cap_frame_pptr = (pptr_t) alloc_region(sizeof(cap_t) * (ndks_boot.slot_pos_cur + 1));
+    cap_frame_pptr = (pptr_t) alloc_region(PAGE_BITS);
 
     /* create the root cnode */
     root_cnode_cap = create_root_cnode();
@@ -399,6 +404,73 @@ try_init_kernel(
     bi_finalise();
 
 #ifdef CONFIG_ARCH_CHERI
+    // Allocate an area of memory to hold caps for the user
+    cap_t *clist = (cap_t *) cap_frame_pptr;
+
+    // Map it to the user (Read Only? Or no Access?)
+    cap_t cap = create_mapped_it_frame_cap(it_pd_cap, cap_frame_pptr, cap_frame_vptr, IT_ASID, false, false);
+
+    printf("There are %lu caps that need %lu bytes\n", ndks_boot.slot_pos_cur + 1, ndks_boot.slot_pos_cur * 16);
+    //cap = *((cap_t *) SLOT_PTR(cap_cnode_cap_get_capCNodePtr(root_cnode_cap) , i));
+    unsigned long long base = (unsigned long long) pv_offset;
+
+#if 1
+    pptr_t kernel_clist_pptr = (pptr_t) SLOT_PTR(cap_cnode_cap_get_capCNodePtr(root_cnode_cap), 0);
+    asm volatile("cspecialrw c21, c0, pcc\n"
+                 /* First save almighty pcc to mtcc so that the kernel has
+                 access to full address space */
+                 "cspecialrw c0, c21, mtcc\n"
+
+                 /* Create arch->pcc address cap */
+                 "cspecialrw c23, c0, ddc\n"
+                 "csetoffset c23, c23, %0\n"
+
+                 /* Create arch->ddc address cap */
+                 "cspecialrw c24, c0, ddc\n"
+                 "csetoffset c24, c24, %3\n"
+
+                 "cspecialrw c22, c0, ddc\n"
+                 "cspecialrw c0, c22, mscratchc\n"
+
+                 /* Save root cnode to c31 */
+                 "cspecialrw c25, c0, ddc\n"
+                 "csetoffset c25, c24, %4\n"
+
+                 "cspecialrw c27, c0, ddc\n"
+                 "csetoffset c27, c27, %5\n"
+                 "csetbounds c27, c27, %6\n"
+
+                 /* Store caps */
+                 "sqcap  c27, c25\n"
+                 :
+#ifdef CONFIG_CHERI_MERGED_RF
+                 : "r" (&(initial->tcbArch.tcbContext.registers[pcc])),
+#else
+                 : "r" (&(initial->tcbArch.tcbContext.cheri_registers[pcc])),
+#endif
+                 "r" (base),
+                 "r" (ui_v_reg.end - ui_v_reg.start),
+#ifdef CONFIG_CHERI_MERGED_RF
+                 "r" (&(initial->tcbArch.tcbContext.registers[ddc]))
+#else
+                 "r" (&(initial->tcbArch.tcbContext.cheri_registers[ddc])),
+                 "r" (&(initial->tcbArch.tcbContext.cheri_registers[c27])),
+                 "r" (kernel_clist_pptr),
+                 "r" (BIT(PAGE_BITS))
+#endif
+                 : "memory"
+                );
+#endif
+
+    // Copy all caps to it
+    for (int i = 0; i <= ndks_boot.slot_pos_cur; i++) {
+        cap = *((cap_t *) SLOT_PTR(cap_cnode_cap_get_capCNodePtr(root_cnode_cap) , i));
+        clist[i] = cap;
+        asm volatile("ctag %0" :: "r" (&clist[i]));
+    }
+
+    // Pin the root cap to the init thread in a CHERI register
+
     for (int i = 0; i <= ndks_boot.slot_pos_cur; i++) {
         //seL4_Cap cap = *((seL4_Cap *) SLOT_PTR(cap_cnode_cap_get_capCNodePtr(root_cnode_cap) , i));
         //printf("#%d: 0x%lx%lx\n", i, cap.words[1], cap.words[0]);
